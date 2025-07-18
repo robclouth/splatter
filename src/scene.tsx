@@ -18,8 +18,7 @@ import {
   Vector2,
   Vector3,
 } from "three";
-import type { SplatParams } from "./app";
-// @ts-ignore
+import type { SceneRef, SplatParams } from "./app";
 import { Group, ShaderMaterial } from "three";
 import { fragmentShader } from "./fragment-shader";
 import { vertexShader } from "./vertex-shader";
@@ -28,21 +27,7 @@ const { ACTION } = CameraControlsImpl;
 type Uniforms = Record<string, { value: any }>;
 
 export const Scene = forwardRef<
-  {
-    exportImage: (filename: string) => void;
-    getCameraState: () => {
-      position: Vector3;
-      quaternion: Quaternion;
-      zoom: number;
-    } | null;
-    startRecording: (
-      width: number,
-      height: number,
-      framerate: number,
-      bitrate: number
-    ) => void;
-    stopRecording: (filename: string) => Promise<void>;
-  },
+  SceneRef,
   {
     splatSource: {
       url: string;
@@ -55,6 +40,8 @@ export const Scene = forwardRef<
     animationSpeed: number;
     splatParams: SplatParams;
     splatAlphaRemovalThreshold: number;
+    onRecordingFinish: () => void;
+    perfectLoop: boolean;
   }
 >(
   (
@@ -67,6 +54,8 @@ export const Scene = forwardRef<
       animationSpeed,
       splatParams,
       splatAlphaRemovalThreshold,
+      onRecordingFinish,
+      perfectLoop,
     },
     ref
   ) => {
@@ -74,6 +63,8 @@ export const Scene = forwardRef<
     const controlsRef = useRef<CameraControlsImpl>(null);
 
     const [isRecording, setIsRecording] = useState(false);
+    const [autoStopMode, setAutoStopMode] = useState("Manual");
+    const [autoStopDuration, setAutoStopDuration] = useState(0);
     // Update encoder reference type
     const encoderRef = useRef<HME.H264MP4Encoder | null>(null);
     const originalSizeRef = useRef<Vector2 | null>(null);
@@ -246,20 +237,30 @@ export const Scene = forwardRef<
       },
       startRecording: async (
         width: number,
-        height: number,
         framerate: number,
-        bitrate: number
+        bitrate: number,
+        mode: string,
+        duration?: number
       ) => {
         try {
           // Create encoder using the updated API
           encoderRef.current = await HME.createH264MP4Encoder();
 
-          // Ensure width and height are multiples of 2 as required by the encoder
-          width = Math.floor(width / 2) * 2;
-          height = Math.floor(height / 2) * 2;
+          let videoWidth: number, videoHeight: number;
+          if (ratio >= 1) {
+            videoWidth = width;
+            videoHeight = width / ratio;
+          } else {
+            videoWidth = width * ratio;
+            videoHeight = width;
+          }
 
-          encoderRef.current.width = width;
-          encoderRef.current.height = height;
+          // Ensure width and height are multiples of 2 as required by the encoder
+          videoWidth = Math.floor(videoWidth / 2) * 2;
+          videoHeight = Math.floor(videoHeight / 2) * 2;
+
+          encoderRef.current.width = videoWidth;
+          encoderRef.current.height = videoHeight;
           encoderRef.current.frameRate = framerate;
           // Convert bitrate from bps to kbps as expected by the encoder
           encoderRef.current.kbps = Math.floor(bitrate / 1000);
@@ -271,9 +272,12 @@ export const Scene = forwardRef<
           originalPixelRatioRef.current = gl.getPixelRatio();
 
           // Set recording size
-          gl.setSize(width, height);
+          gl.setSize(videoWidth, videoHeight);
           gl.setPixelRatio(1);
           animationState.current.progress = 0; // Reset animation for recording
+          uniforms!.time.value = 0; // Reset time uniform
+          setAutoStopMode(mode);
+          setAutoStopDuration(duration || 0);
           setIsRecording(true);
         } catch (error) {
           console.error("Failed to start recording:", error);
@@ -290,6 +294,7 @@ export const Scene = forwardRef<
       stopRecording: async (filename: string) => {
         if (encoderRef.current) {
           setIsRecording(false);
+          setAutoStopMode("Manual");
 
           try {
             encoderRef.current.finalize();
@@ -342,8 +347,6 @@ export const Scene = forwardRef<
     });
 
     useFrame((state, delta) => {
-      gl.render(scene, camera);
-
       let animationDelta = delta;
       if (isRecording && encoderRef.current) {
         // Use fixed delta for recording
@@ -363,6 +366,9 @@ export const Scene = forwardRef<
           (animationDelta * animationSpeed * 0.1) / cameraStates.length;
         if (animationState.current.progress > 1) {
           animationState.current.progress = 0;
+          if (isRecording && autoStopMode === "One Loop") {
+            onRecordingFinish();
+          }
         }
         const t = animationState.current.progress;
 
@@ -406,10 +412,29 @@ export const Scene = forwardRef<
         animationState.current.progress = 0;
       }
 
-      if (uniforms?.time) uniforms.time.value += animationDelta;
+      if (uniforms?.time) {
+        if (playAnimation && perfectLoop && cameraStates.length >= 2) {
+          const progress = animationState.current.progress;
+          const pingPongProgress = 1 - Math.abs(progress * 2 - 1);
+          const loopDuration =
+            cameraStates.length / (animationSpeed * 0.1 * 0.5);
+          uniforms.time.value = pingPongProgress * loopDuration;
+        } else {
+          uniforms.time.value += animationDelta;
+        }
+      }
+
+      gl.render(scene, camera);
 
       // Frame capture logic for recording
       if (isRecording && encoderRef.current) {
+        if (
+          autoStopMode === "Duration" &&
+          uniforms?.time.value >= autoStopDuration
+        ) {
+          onRecordingFinish();
+        }
+
         const width = encoderRef.current.width;
         const height = encoderRef.current.height;
         const pixels = new Uint8Array(width * height * 4);

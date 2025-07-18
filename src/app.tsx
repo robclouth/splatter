@@ -1,7 +1,7 @@
 // @ts-ignore
 import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import { Canvas } from "@react-three/fiber";
-import { button, folder, useControls } from "leva";
+import { button, folder, Leva, useControls } from "leva";
 import { useRef, useState } from "react";
 import { Quaternion, Vector3 } from "three";
 import { Scene } from "./scene";
@@ -27,22 +27,25 @@ export type SplatParams = {
   videoBitrate: number;
 };
 
+export type SceneRef = {
+  exportImage: (filename: string) => void;
+  getCameraState: () => {
+    position: Vector3;
+    quaternion: Quaternion;
+    zoom: number;
+  } | null;
+  startRecording: (
+    width: number,
+    framerate: number,
+    bitrate: number,
+    autoStopMode: string,
+    duration?: number
+  ) => void;
+  stopRecording: (filename: string) => Promise<void>;
+};
+
 export default function App() {
-  const sceneRef = useRef<{
-    exportImage: (filename: string) => void;
-    getCameraState: () => {
-      position: Vector3;
-      quaternion: Quaternion;
-      zoom: number;
-    } | null;
-    startRecording: (
-      width: number,
-      height: number,
-      framerate: number,
-      bitrate: number
-    ) => Promise<void>;
-    stopRecording: (filename: string) => Promise<void>;
-  }>(null);
+  const sceneRef = useRef<SceneRef>(null);
 
   const [cameraStates, setCameraStates] = useState<
     { position: Vector3; quaternion: Quaternion; zoom: number }[]
@@ -58,6 +61,7 @@ export default function App() {
     animationSpeed,
     imageName,
     splatAlphaRemovalThreshold,
+    perfectLoop,
 
     ...splatParams
   } = useControls(
@@ -192,6 +196,10 @@ export default function App() {
           step: 0.1,
           label: "Speed",
         },
+        perfectLoop: {
+          value: false,
+          label: "Perfect Loop",
+        },
       }),
       Video: folder({
         videoResolution: {
@@ -211,23 +219,30 @@ export default function App() {
           step: 10,
           label: "Bitrate (Mbps)",
         },
+        autoStopMode: {
+          options: ["Manual", "One Loop", "Duration"],
+          value: "Manual",
+          label: "Auto-stop",
+        },
+        videoDuration: {
+          value: 10,
+          min: 1,
+          max: 300,
+          step: 1,
+          label: "Duration (s)",
+        },
         "Start/Stop Recording": button((get) => {
-          if (!sceneRef.current) return;
           if (isRecording) {
-            setIsRecording(false);
-            sceneRef.current.stopRecording(get("Export.imageName")).then(() => {
-              console.log("Recording finished");
-            });
+            handleStopRecording();
           } else {
-            const [w, h] = get("Canvas.aspectRatio").split(":").map(Number);
-            const ratio = w / h;
+            if (!sceneRef.current) return;
             const width = get("Video.videoResolution");
-            const height = Math.round(width / ratio);
             sceneRef.current.startRecording(
               width,
-              height,
               get("Video.videoFramerate"),
-              get("Video.videoBitrate") * 1000000 // Convert Mbps to bps
+              get("Video.videoBitrate") * 1000000, // Convert Mbps to bps
+              get("Video.autoStopMode"),
+              get("Video.videoDuration")
             );
             setIsRecording(true);
           }
@@ -257,10 +272,21 @@ export default function App() {
     animationSpeed: number;
     imageName: string;
     splatAlphaRemovalThreshold: number;
+    perfectLoop: boolean;
     videoResolution: number;
     videoFramerate: number;
     videoBitrate: number;
+    autoStopMode: string;
+    videoDuration: number;
   } & SplatParams;
+
+  const handleStopRecording = () => {
+    if (!sceneRef.current) return;
+    setIsRecording(false);
+    sceneRef.current.stopRecording(imageName).then(() => {
+      console.log("Recording finished");
+    });
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -300,6 +326,23 @@ export default function App() {
 
   return (
     <>
+      <Leva
+        theme={{
+          colors: {
+            elevation1: "#000000aa",
+            elevation2: "#00000000",
+            elevation3: "#00000088",
+            highlight1: "#ffffff",
+            highlight2: "#ffffff",
+            highlight3: "#ffffff",
+            accent1: "#727272",
+            accent2: "#727272",
+            accent3: "#727272",
+          },
+        }}
+        titleBar={{ title: "Scene Controls", drag: false }}
+      />
+
       <div className="relative w-screen h-screen flex items-center justify-center bg-black">
         <input
           type="file"
@@ -336,6 +379,8 @@ export default function App() {
               animationSpeed={animationSpeed}
               splatParams={splatParams}
               splatAlphaRemovalThreshold={splatAlphaRemovalThreshold}
+              onRecordingFinish={handleStopRecording}
+              perfectLoop={perfectLoop}
             />
           </Canvas>
         </div>
