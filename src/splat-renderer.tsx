@@ -265,7 +265,7 @@ float snoise(vec4 v)
     setViewer(viewer);
 
     return () => void viewer.dispose();
-  }, [sources]);
+  }, []);
 
   useEffect(() => {
     viewer.traverse((obj: unknown) => {
