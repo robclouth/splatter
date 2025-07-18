@@ -346,7 +346,7 @@ export const Scene = forwardRef<
       progress: 0,
     });
 
-    useFrame((state, delta) => {
+    useFrame((_, delta) => {
       let animationDelta = delta;
       if (isRecording && encoderRef.current) {
         // Use fixed delta for recording
