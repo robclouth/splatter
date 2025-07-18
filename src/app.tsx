@@ -1,7 +1,7 @@
 // @ts-ignore
 import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import { Canvas } from "@react-three/fiber";
-import { button, useControls } from "leva";
+import { button, folder, useControls } from "leva";
 import { useRef, useState } from "react";
 import { Quaternion, Vector3 } from "three";
 import { Scene } from "./scene";
@@ -19,6 +19,9 @@ export type SplatParams = {
   noiseSharpness: number;
   gridScale: number;
   gridAmount: number;
+  fogStart: number;
+  fogEnd: number;
+  fogAmount: number;
 };
 
 export default function App() {
@@ -42,111 +45,153 @@ export default function App() {
     playAnimation,
     animationSpeed,
     imageName,
+    splatAlphaRemovalThreshold,
     ...splatParams
   } = useControls({
-    "Load Splat": button(() => fileInputRef.current?.click()),
-    background: { r: 255, g: 255, b: 255, a: 1, label: "Background Color" },
-    aspectRatio: {
-      options: ["16:9", "4:3", "3:2", "1:1", "9:16", "3:4", "2:3"],
-      value: "16:9",
-      label: "Aspect Ratio",
-    },
-
-    noisiness: {
-      value: 0.1,
-      min: 0,
-      max: 1,
-      step: 0.01,
-      label: "Dither Amount",
-    },
-    ditherGranularity: {
-      value: 1,
-      min: 1,
-      max: 1000000,
-      step: 1,
-      label: "Dither Granularity",
-    },
-    noiseScaleX: {
-      value: 0,
-      min: 0,
-      max: 10,
-      step: 0.01,
-      label: "Scale X",
-    },
-    noiseScaleY: {
-      value: 0,
-      min: 0,
-      max: 10,
-      step: 0.01,
-      label: "Scale Y",
-    },
-    noiseScaleZ: {
-      value: 0,
-      min: 0,
-      max: 10,
-      step: 0.01,
-      label: "Scale Z",
-    },
-    noiseSpeed: {
-      value: 0.1,
-      min: 0,
-      max: 1,
-      step: 0.01,
-      label: "Speed",
-    },
-    noiseRateX: { value: 1, min: 0, max: 10, step: 0.1, label: "Rate X" },
-    noiseRateY: { value: 1, min: 0, max: 10, step: 0.1, label: "Rate Y" },
-    noiseRateZ: { value: 1, min: 0, max: 10, step: 0.1, label: "Rate Z" },
-    noiseSharpness: {
-      value: 1,
-      min: 0.1,
-      max: 10,
-      step: 0.1,
-      label: "Sharpness",
-    },
-    gridScale: {
-      value: 0.1,
-      min: 0.01,
-      max: 1,
-      step: 0.01,
-      label: "Grid Scale",
-    },
-    gridAmount: {
-      value: 0,
-      min: 0,
-      max: 1,
-      step: 0.01,
-      label: "Grid Amount",
-    },
-
-    "Save Camera": button(() => {
-      const state = sceneRef.current?.getCameraState();
-      if (state) {
-        setCameraStates((prev) => [...prev, state]);
-      }
+    Import: folder({
+      "Load Splat": button(() => fileInputRef.current?.click()),
+      splatAlphaRemovalThreshold: {
+        value: 1,
+        min: 0,
+        max: 255,
+        step: 1,
+        label: "Alpha Threshold",
+      },
     }),
-    "Clear Cameras": button(() => setCameraStates([])),
-    playAnimation: {
-      value: false,
-      label: "Play Animation",
-    },
-    animationSpeed: {
-      value: 1,
-      min: 0.1,
-      max: 5,
-      step: 0.1,
-      label: "Animation Speed",
-    },
-    imageName: { value: "export", label: "Image Name" },
-    exportSize: {
-      options: [2000, 4000, 6000, 8000],
-      value: 4000,
-      label: "Export Size (px)",
-    },
-    Export: button(() => {
-      if (sceneRef.current) {
-        sceneRef.current.exportImage(imageName);
-      }
+    Canvas: folder({
+      background: { r: 255, g: 255, b: 255, a: 1, label: "Background Color" },
+      aspectRatio: {
+        options: ["16:9", "4:3", "3:2", "1:1", "9:16", "3:4", "2:3"],
+        value: "16:9",
+        label: "Aspect Ratio",
+      },
+    }),
+    Grain: folder({
+      noisiness: {
+        value: 0.1,
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label: "Amount",
+      },
+      ditherGranularity: {
+        value: 1,
+        min: 1,
+        max: 1000000,
+        step: 1,
+        label: "Hash",
+      },
+    }),
+    Noise: folder({
+      noiseScaleX: {
+        value: 0,
+        min: 0,
+        max: 10,
+        step: 0.01,
+        label: "Scale X",
+      },
+      noiseScaleY: {
+        value: 0,
+        min: 0,
+        max: 10,
+        step: 0.01,
+        label: "Scale Y",
+      },
+      noiseScaleZ: {
+        value: 0,
+        min: 0,
+        max: 10,
+        step: 0.01,
+        label: "Scale Z",
+      },
+      noiseSpeed: {
+        value: 0.1,
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label: "Speed",
+      },
+      noiseRateX: { value: 1, min: 0, max: 10, step: 0.1, label: "Rate X" },
+      noiseRateY: { value: 1, min: 0, max: 10, step: 0.1, label: "Rate Y" },
+      noiseRateZ: { value: 1, min: 0, max: 10, step: 0.1, label: "Rate Z" },
+      noiseSharpness: {
+        value: 1,
+        min: 0.1,
+        max: 10,
+        step: 0.1,
+        label: "Sharpness",
+      },
+      gridScale: {
+        value: 0.1,
+        min: 0.01,
+        max: 1,
+        step: 0.01,
+        label: "Grid Scale",
+      },
+      gridAmount: {
+        value: 0,
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label: "Grid Amount",
+      },
+    }),
+    Fog: folder({
+      fogStart: {
+        value: 0,
+        min: 0,
+        max: 100,
+        step: 0.1,
+        label: "Start",
+      },
+      fogEnd: {
+        value: 20,
+        min: 0,
+        max: 100,
+        step: 0.1,
+        label: "End",
+      },
+      fogAmount: {
+        value: 0,
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label: "Amount",
+      },
+    }),
+    Animation: folder({
+      "Add key": button(() => {
+        const state = sceneRef.current?.getCameraState();
+        if (state) {
+          setCameraStates((prev) => [...prev, state]);
+        }
+      }),
+      "Clear keys": button(() => setCameraStates([])),
+      playAnimation: {
+        value: false,
+        label: "Play",
+      },
+      animationSpeed: {
+        value: 1,
+        min: 0.1,
+        max: 5,
+        step: 0.1,
+        label: "Speed",
+      },
+    }),
+
+    Export: folder({
+      imageName: { value: "export", label: "Image Name" },
+      exportSize: {
+        options: [2000, 4000, 6000, 8000],
+        value: 4000,
+        label: "Export Size (px)",
+      },
+      Export: button(() => {
+        if (sceneRef.current) {
+          sceneRef.current.exportImage(imageName);
+        }
+      }),
     }),
   }) as unknown as {
     background: { r: number; g: number; b: number; a: number };
@@ -155,6 +200,7 @@ export default function App() {
     playAnimation: boolean;
     animationSpeed: number;
     imageName: string;
+    splatAlphaRemovalThreshold: number;
   } & SplatParams;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -195,7 +241,7 @@ export default function App() {
 
   return (
     <>
-      <div className="relative w-screen h-screen flex items-center justify-center">
+      <div className="relative w-screen h-screen flex items-center justify-center bg-black">
         <input
           type="file"
           ref={fileInputRef}
@@ -230,6 +276,7 @@ export default function App() {
               playAnimation={playAnimation}
               animationSpeed={animationSpeed}
               splatParams={splatParams}
+              splatAlphaRemovalThreshold={splatAlphaRemovalThreshold}
             />
           </Canvas>
         </div>

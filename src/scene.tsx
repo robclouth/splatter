@@ -35,6 +35,7 @@ export const Scene = forwardRef<
     playAnimation: boolean;
     animationSpeed: number;
     splatParams: SplatParams;
+    splatAlphaRemovalThreshold: number;
   }
 >(
   (
@@ -46,6 +47,7 @@ export const Scene = forwardRef<
       playAnimation,
       animationSpeed,
       splatParams,
+      splatAlphaRemovalThreshold,
     },
     ref
   ) => {
@@ -177,6 +179,9 @@ export const Scene = forwardRef<
             wheel: ACTION.ZOOM,
           }}
           infinityDolly
+          dollyToCursor
+          minDistance={10}
+          maxDistance={10}
         />
         <ambientLight intensity={Math.PI / 2} />
         <spotLight
@@ -189,7 +194,11 @@ export const Scene = forwardRef<
         <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
         {splatSource && (
           <group rotation={[0, 0, Math.PI]}>
-            <SplatRenderer sources={[splatSource]} splatParams={splatParams} />
+            <SplatRenderer
+              sources={[splatSource]}
+              splatParams={splatParams}
+              splatAlphaRemovalThreshold={splatAlphaRemovalThreshold}
+            />
           </group>
         )}
       </>
