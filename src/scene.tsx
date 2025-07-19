@@ -46,7 +46,12 @@ import {
   perfectLoopAtom,
   playAnimationAtom,
   splatAlphaRemovalThresholdAtom,
+  splatScaleAtom,
+  splatSizeThresholdAtom,
   splatSourceAtom,
+  wrapCubeSizeXAtom,
+  wrapCubeSizeYAtom,
+  wrapCubeSizeZAtom,
 } from "./store";
 import { vertexShader } from "./vertex-shader";
 const { ACTION } = CameraControlsImpl;
@@ -75,6 +80,8 @@ export const Scene = forwardRef<
   const splatAlphaRemovalThreshold = useAtomValue(
     splatAlphaRemovalThresholdAtom
   );
+  const splatSizeThreshold = useAtomValue(splatSizeThresholdAtom);
+  const splatScale = useAtomValue(splatScaleAtom);
   const aspectRatio = useAtomValue(aspectRatioAtom);
   const exportSize = useAtomValue(exportSizeAtom);
 
@@ -93,6 +100,9 @@ export const Scene = forwardRef<
   const fogStart = useAtomValue(fogStartAtom);
   const fogEnd = useAtomValue(fogEndAtom);
   const fogAmount = useAtomValue(fogAmountAtom);
+  const wrapCubeSizeX = useAtomValue(wrapCubeSizeXAtom);
+  const wrapCubeSizeY = useAtomValue(wrapCubeSizeYAtom);
+  const wrapCubeSizeZ = useAtomValue(wrapCubeSizeZAtom);
   const cameraStates = useAtomValue(cameraStatesAtom);
   const playAnimation = useAtomValue(playAnimationAtom);
   const animationSpeed = useAtomValue(animationSpeedAtom);
@@ -112,7 +122,6 @@ export const Scene = forwardRef<
       splatRenderMode: GaussianSplats3D.SplatRenderMode.ThreeD,
       sphericalHarmonicsDegree: 2,
       antialiased: true,
-      splatAlphaRemovalThreshold,
     });
     const updateShader = () => {
       const mat = viewer.splatMesh.material as ShaderMaterial;
@@ -131,6 +140,9 @@ export const Scene = forwardRef<
       mat.uniforms.fogStart = { value: 0.0 };
       mat.uniforms.fogEnd = { value: 0.0 };
       mat.uniforms.fogAmount = { value: 0.0 };
+      mat.uniforms.wrapCubeSize = { value: [0, 0, 0] };
+      mat.uniforms.splatSizeThreshold = { value: 1000.0 };
+      mat.uniforms.splatAlphaRemovalThreshold = { value: 1.0 / 255.0 };
       mat.defines = { ...(mat.defines || {}), DITHERED_ALPHA: "" };
 
       // 2. patch the shader just once
@@ -164,7 +176,7 @@ export const Scene = forwardRef<
     setViewer(viewer);
 
     return () => void viewer.dispose();
-  }, [splatAlphaRemovalThreshold, splatSource]);
+  }, [splatSource]);
 
   useEffect(() => {
     if (!uniforms) return;
@@ -183,6 +195,18 @@ export const Scene = forwardRef<
     if (uniforms.fogStart) uniforms.fogStart.value = fogStart;
     if (uniforms.fogEnd) uniforms.fogEnd.value = fogEnd;
     if (uniforms.fogAmount) uniforms.fogAmount.value = fogAmount;
+    if (uniforms.wrapCubeSize)
+      uniforms.wrapCubeSize.value = [
+        wrapCubeSizeX,
+        wrapCubeSizeY,
+        wrapCubeSizeZ,
+      ];
+    if (uniforms.splatSizeThreshold)
+      uniforms.splatSizeThreshold.value = splatSizeThreshold;
+    if (uniforms.splatAlphaRemovalThreshold)
+      uniforms.splatAlphaRemovalThreshold.value =
+        splatAlphaRemovalThreshold / 255.0;
+    if (uniforms.splatScale) uniforms.splatScale.value = splatScale;
   }, [
     noisiness,
     ditherGranularity,
@@ -200,6 +224,12 @@ export const Scene = forwardRef<
     fogStart,
     fogEnd,
     fogAmount,
+    wrapCubeSizeX,
+    wrapCubeSizeY,
+    wrapCubeSizeZ,
+    splatSizeThreshold,
+    splatAlphaRemovalThreshold,
+    splatScale,
   ]);
 
   useEffect(() => {

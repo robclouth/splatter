@@ -33,11 +33,16 @@ import {
   perfectLoopAtom,
   playAnimationAtom,
   splatAlphaRemovalThresholdAtom,
+  splatScaleAtom,
+  splatSizeThresholdAtom,
   splatSourceAtom,
   videoBitrateAtom,
   videoDurationAtom,
   videoFramerateAtom,
   videoResolutionAtom,
+  wrapCubeSizeXAtom,
+  wrapCubeSizeYAtom,
+  wrapCubeSizeZAtom,
 } from "./store";
 import { PerformanceMonitor } from "@react-three/drei";
 
@@ -57,6 +62,9 @@ export type SplatParams = {
   fogStart: number;
   fogEnd: number;
   fogAmount: number;
+  wrapCubeSizeX: number;
+  wrapCubeSizeY: number;
+  wrapCubeSizeZ: number;
   videoResolution: number;
   videoFramerate: number;
   videoBitrate: number;
@@ -94,6 +102,10 @@ export default function App() {
   const [splatAlphaRemovalThreshold, setSplatAlphaRemovalThreshold] = useAtom(
     splatAlphaRemovalThresholdAtom
   );
+  const [splatSizeThreshold, setSplatSizeThreshold] = useAtom(
+    splatSizeThresholdAtom
+  );
+  const [splatScale, setSplatScale] = useAtom(splatScaleAtom);
   const [background, setBackground] = useAtom(backgroundAtom);
   const [aspectRatio, setAspectRatio] = useAtom(aspectRatioAtom);
   const [noisiness, setNoisiness] = useAtom(noisinessAtom);
@@ -113,6 +125,9 @@ export default function App() {
   const [fogStart, setFogStart] = useAtom(fogStartAtom);
   const [fogEnd, setFogEnd] = useAtom(fogEndAtom);
   const [fogAmount, setFogAmount] = useAtom(fogAmountAtom);
+  const [wrapCubeSizeX, setWrapCubeSizeX] = useAtom(wrapCubeSizeXAtom);
+  const [wrapCubeSizeY, setWrapCubeSizeY] = useAtom(wrapCubeSizeYAtom);
+  const [wrapCubeSizeZ, setWrapCubeSizeZ] = useAtom(wrapCubeSizeZAtom);
   const [playAnimation, setPlayAnimation] = useAtom(playAnimationAtom);
   const [animationSpeed, setAnimationSpeed] = useAtom(animationSpeedAtom);
   const [perfectLoop, setPerfectLoop] = useAtom(perfectLoopAtom);
@@ -128,6 +143,8 @@ export default function App() {
     () => ({
       Import: folder({
         "Load Splat": button(() => fileInputRef.current?.click()),
+      }),
+      Splats: folder({
         splatAlphaRemovalThreshold: {
           value: splatAlphaRemovalThreshold,
           min: 0,
@@ -135,6 +152,22 @@ export default function App() {
           step: 1,
           label: "Alpha Threshold",
           onChange: setSplatAlphaRemovalThreshold,
+        },
+        splatSizeThreshold: {
+          value: splatSizeThreshold,
+          min: 0,
+          max: 1000,
+          step: 1,
+          label: "Size Threshold",
+          onChange: setSplatSizeThreshold,
+        },
+        splatScale: {
+          value: splatScale,
+          min: 0.1,
+          max: 5,
+          step: 0.1,
+          label: "Scale",
+          onChange: setSplatScale,
         },
       }),
       Canvas: folder(
@@ -259,6 +292,37 @@ export default function App() {
             step: 0.01,
             label: "Grid Amount",
             onChange: setGridAmount,
+          },
+        },
+        {
+          collapsed: true,
+        }
+      ),
+      Wrap: folder(
+        {
+          wrapCubeSizeX: {
+            value: wrapCubeSizeX,
+            min: 0,
+            max: 100,
+            step: 0.1,
+            label: "Size X",
+            onChange: setWrapCubeSizeX,
+          },
+          wrapCubeSizeY: {
+            value: wrapCubeSizeY,
+            min: 0,
+            max: 100,
+            step: 0.1,
+            label: "Size Y",
+            onChange: setWrapCubeSizeY,
+          },
+          wrapCubeSizeZ: {
+            value: wrapCubeSizeZ,
+            min: 0,
+            max: 100,
+            step: 0.1,
+            label: "Size Z",
+            onChange: setWrapCubeSizeZ,
           },
         },
         {

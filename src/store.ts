@@ -70,10 +70,19 @@ export const splatSourceAtom = atom<{
 // Leva controls state as atoms
 export const splatAlphaRemovalThresholdAtom = atomWithStorage(
   "splatAlphaRemovalThreshold",
-  1,
+  1 / 255,
   undefined,
   { getOnInit: true }
 );
+export const splatSizeThresholdAtom = atomWithStorage(
+  "splatSizeThreshold",
+  1000,
+  undefined,
+  { getOnInit: true }
+);
+export const splatScaleAtom = atomWithStorage("splatScale", 1, undefined, {
+  getOnInit: true,
+});
 export const backgroundAtom = atomWithStorage(
   "background",
   {
@@ -142,6 +151,30 @@ export const fogEndAtom = atomWithStorage("fogEnd", 20, undefined, {
 export const fogAmountAtom = atomWithStorage("fogAmount", 0, undefined, {
   getOnInit: true,
 });
+export const wrapCubeSizeXAtom = atomWithStorage(
+  "wrapCubeSizeX",
+  0,
+  undefined,
+  {
+    getOnInit: true,
+  }
+);
+export const wrapCubeSizeYAtom = atomWithStorage(
+  "wrapCubeSizeY",
+  0,
+  undefined,
+  {
+    getOnInit: true,
+  }
+);
+export const wrapCubeSizeZAtom = atomWithStorage(
+  "wrapCubeSizeZ",
+  0,
+  undefined,
+  {
+    getOnInit: true,
+  }
+);
 export const playAnimationAtom = atom(false);
 export const animationSpeedAtom = atomWithStorage(
   "animationSpeed",

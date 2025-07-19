@@ -49,6 +49,8 @@ precision highp float;
         uniform float splatScale;
         uniform float sphericalHarmonics8BitCompressionRangeMin[32];
         uniform float sphericalHarmonics8BitCompressionRangeMax[32];
+        uniform float splatSizeThreshold;
+        uniform float splatAlphaRemovalThreshold;
 
         varying vec4 vColor;
         varying vec2 vUv;
@@ -64,6 +66,7 @@ precision highp float;
               uniform float fogStart;
               uniform float fogEnd;
               uniform float fogAmount;
+              uniform vec3 wrapCubeSize;
               varying float vDist;
 
               vec4 mod289(vec4 x) {
@@ -260,6 +263,11 @@ float snoise(vec4 v)
 
               splatCenter += noise * noiseScale;
 
+              if (wrapCubeSize.x > 0.0 || wrapCubeSize.y > 0.0 || wrapCubeSize.z > 0.0) {
+                  vec3 halfSize = wrapCubeSize / 2.0;
+                  splatCenter = mod(splatCenter + halfSize, wrapCubeSize) - halfSize;
+              }
+
             uint sceneIndex = uint(0);
             if (sceneCount > 1) {
                 sceneIndex = texture(sceneIndexesTexture, getDataUV(1, 0, sceneIndexesTextureSize)).r;
@@ -286,6 +294,11 @@ float snoise(vec4 v)
             vPosition = position.xy;
             vColor = uintToRGBAVec(sampledCenterColor.r);
             vDist = length(viewCenter.xyz);
+
+            if (vColor.a < splatAlphaRemovalThreshold) {
+                gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+                return;
+            }
 
             if (sphericalHarmonicsDegree >= 1) {
             
@@ -475,6 +488,11 @@ float snoise(vec4 v)
             float term2 = sqrt(max(0.1f, traceOver2 * traceOver2 - D));
             float eigenValue1 = traceOver2 + term2;
             float eigenValue2 = traceOver2 - term2;
+
+            if (eigenValue1 > splatSizeThreshold) {
+                gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+                return;
+            }
 
             if (pointCloudModeEnabled == 1) {
                 eigenValue1 = eigenValue2 = 0.2;
