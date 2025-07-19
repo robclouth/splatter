@@ -16,6 +16,7 @@
     "@tailwindcss/vite": "^4.1.11",
     "@types/three": "^0.178.1",
     "h264-mp4-encoder": "^1.0.12",
+    "jotai": "^2.12.5",
     "leva": "^0.10.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

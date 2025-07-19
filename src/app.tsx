@@ -1,10 +1,45 @@
 // @ts-ignore
 import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import { Canvas } from "@react-three/fiber";
+import { useAtom, useSetAtom } from "jotai";
 import { button, folder, Leva, useControls } from "leva";
 import { useRef, useState } from "react";
 import { Quaternion, Vector3 } from "three";
 import { Scene } from "./scene";
+import {
+  animationSpeedAtom,
+  aspectRatioAtom,
+  autoStopModeAtom,
+  backgroundAtom,
+  cameraStatesAtom,
+  ditherGranularityAtom,
+  exportSizeAtom,
+  fogAmountAtom,
+  fogEndAtom,
+  fogStartAtom,
+  gridAmountAtom,
+  gridScaleAtom,
+  imageNameAtom,
+  isRecordingAtom,
+  noiseRateXAtom,
+  noiseRateYAtom,
+  noiseRateZAtom,
+  noiseScaleXAtom,
+  noiseScaleYAtom,
+  noiseScaleZAtom,
+  noiseSharpnessAtom,
+  noiseSpeedAtom,
+  noisinessAtom,
+  perfectLoopAtom,
+  playAnimationAtom,
+  splatAlphaRemovalThresholdAtom,
+  splatSourceAtom,
+  videoBitrateAtom,
+  videoDurationAtom,
+  videoFramerateAtom,
+  videoResolutionAtom,
+} from "./store";
+import { PerformanceMonitor } from "@react-three/drei";
 
 export type SplatParams = {
   noisiness: number;
@@ -49,244 +84,341 @@ export type SceneRef = {
 
 export default function App() {
   const sceneRef = useRef<SceneRef>(null);
+  const [dpr, setDpr] = useState(1);
 
-  const [cameraStates, setCameraStates] = useState<
-    {
-      position: Vector3;
-      quaternion: Quaternion;
-      target: Vector3;
-      zoom: number;
-    }[]
-  >([]);
+  const setCameraStates = useSetAtom(cameraStatesAtom);
 
-  const [isRecording, setIsRecording] = useState(false);
+  const [isRecording, setIsRecording] = useAtom(isRecordingAtom);
 
-  const {
-    background,
-    aspectRatio,
-    exportSize,
-    playAnimation,
-    animationSpeed,
-    imageName,
-    splatAlphaRemovalThreshold,
-    perfectLoop,
+  const setSplatSource = useSetAtom(splatSourceAtom);
+  const [splatAlphaRemovalThreshold, setSplatAlphaRemovalThreshold] = useAtom(
+    splatAlphaRemovalThresholdAtom
+  );
+  const [background, setBackground] = useAtom(backgroundAtom);
+  const [aspectRatio, setAspectRatio] = useAtom(aspectRatioAtom);
+  const [noisiness, setNoisiness] = useAtom(noisinessAtom);
+  const [ditherGranularity, setDitherGranularity] = useAtom(
+    ditherGranularityAtom
+  );
+  const [noiseScaleX, setNoiseScaleX] = useAtom(noiseScaleXAtom);
+  const [noiseScaleY, setNoiseScaleY] = useAtom(noiseScaleYAtom);
+  const [noiseScaleZ, setNoiseScaleZ] = useAtom(noiseScaleZAtom);
+  const [noiseSpeed, setNoiseSpeed] = useAtom(noiseSpeedAtom);
+  const [noiseRateX, setNoiseRateX] = useAtom(noiseRateXAtom);
+  const [noiseRateY, setNoiseRateY] = useAtom(noiseRateYAtom);
+  const [noiseRateZ, setNoiseRateZ] = useAtom(noiseRateZAtom);
+  const [noiseSharpness, setNoiseSharpness] = useAtom(noiseSharpnessAtom);
+  const [gridScale, setGridScale] = useAtom(gridScaleAtom);
+  const [gridAmount, setGridAmount] = useAtom(gridAmountAtom);
+  const [fogStart, setFogStart] = useAtom(fogStartAtom);
+  const [fogEnd, setFogEnd] = useAtom(fogEndAtom);
+  const [fogAmount, setFogAmount] = useAtom(fogAmountAtom);
+  const [playAnimation, setPlayAnimation] = useAtom(playAnimationAtom);
+  const [animationSpeed, setAnimationSpeed] = useAtom(animationSpeedAtom);
+  const [perfectLoop, setPerfectLoop] = useAtom(perfectLoopAtom);
+  const [videoResolution, setVideoResolution] = useAtom(videoResolutionAtom);
+  const [videoFramerate, setVideoFramerate] = useAtom(videoFramerateAtom);
+  const [videoBitrate, setVideoBitrate] = useAtom(videoBitrateAtom);
+  const [autoStopMode, setAutoStopMode] = useAtom(autoStopModeAtom);
+  const [videoDuration, setVideoDuration] = useAtom(videoDurationAtom);
+  const [imageName, setImageName] = useAtom(imageNameAtom);
+  const [exportSize, setExportSize] = useAtom(exportSizeAtom);
 
-    ...splatParams
-  } = useControls(
-    {
+  const [, set] = useControls(
+    () => ({
       Import: folder({
         "Load Splat": button(() => fileInputRef.current?.click()),
         splatAlphaRemovalThreshold: {
-          value: 1,
+          value: splatAlphaRemovalThreshold,
           min: 0,
           max: 255,
           step: 1,
           label: "Alpha Threshold",
+          onChange: setSplatAlphaRemovalThreshold,
         },
       }),
-      Canvas: folder({
-        background: { r: 255, g: 255, b: 255, a: 1, label: "Background Color" },
-        aspectRatio: {
-          options: ["16:9", "4:3", "3:2", "1:1", "9:16", "3:4", "2:3"],
-          value: "16:9",
-          label: "Aspect Ratio",
+      Canvas: folder(
+        {
+          background: {
+            value: background,
+            label: "Background Color",
+            onChange: setBackground,
+          },
+          aspectRatio: {
+            options: ["16:9", "4:3", "3:2", "1:1", "9:16", "3:4", "2:3"],
+            value: aspectRatio,
+            label: "Aspect Ratio",
+            onChange: setAspectRatio,
+          },
         },
-      }),
-      Grain: folder({
-        noisiness: {
-          value: 0.1,
-          min: 0,
-          max: 1,
-          step: 0.01,
-          label: "Amount",
+        {
+          collapsed: true,
+        }
+      ),
+      Grain: folder(
+        {
+          noisiness: {
+            value: noisiness,
+            min: 0,
+            max: 1,
+            step: 0.01,
+            label: "Amount",
+            onChange: setNoisiness,
+          },
+          ditherGranularity: {
+            value: ditherGranularity,
+            min: 1,
+            max: 1000000,
+            step: 1,
+            label: "Hash",
+            onChange: setDitherGranularity,
+          },
         },
-        ditherGranularity: {
-          value: 1,
-          min: 1,
-          max: 1000000,
-          step: 1,
-          label: "Hash",
+        {
+          collapsed: true,
+        }
+      ),
+      Noise: folder(
+        {
+          noiseScaleX: {
+            value: noiseScaleX,
+            min: 0,
+            max: 10,
+            step: 0.01,
+            label: "Scale X",
+            onChange: setNoiseScaleX,
+          },
+          noiseScaleY: {
+            value: noiseScaleY,
+            min: 0,
+            max: 10,
+            step: 0.01,
+            label: "Scale Y",
+            onChange: setNoiseScaleY,
+          },
+          noiseScaleZ: {
+            value: noiseScaleZ,
+            min: 0,
+            max: 10,
+            step: 0.01,
+            label: "Scale Z",
+            onChange: setNoiseScaleZ,
+          },
+          noiseSpeed: {
+            value: noiseSpeed,
+            min: 0,
+            max: 1,
+            step: 0.01,
+            label: "Speed",
+            onChange: setNoiseSpeed,
+          },
+          noiseRateX: {
+            value: noiseRateX,
+            min: 0,
+            max: 10,
+            step: 0.1,
+            label: "Rate X",
+            onChange: setNoiseRateX,
+          },
+          noiseRateY: {
+            value: noiseRateY,
+            min: 0,
+            max: 10,
+            step: 0.1,
+            label: "Rate Y",
+            onChange: setNoiseRateY,
+          },
+          noiseRateZ: {
+            value: noiseRateZ,
+            min: 0,
+            max: 10,
+            step: 0.1,
+            label: "Rate Z",
+            onChange: setNoiseRateZ,
+          },
+          noiseSharpness: {
+            value: noiseSharpness,
+            min: 0.1,
+            max: 10,
+            step: 0.1,
+            label: "Sharpness",
+            onChange: setNoiseSharpness,
+          },
+          gridScale: {
+            value: gridScale,
+            min: 0.01,
+            max: 1,
+            step: 0.01,
+            label: "Grid Scale",
+            onChange: setGridScale,
+          },
+          gridAmount: {
+            value: gridAmount,
+            min: 0,
+            max: 1,
+            step: 0.01,
+            label: "Grid Amount",
+            onChange: setGridAmount,
+          },
         },
-      }),
-      Noise: folder({
-        noiseScaleX: {
-          value: 0,
-          min: 0,
-          max: 10,
-          step: 0.01,
-          label: "Scale X",
+        {
+          collapsed: true,
+        }
+      ),
+      Fog: folder(
+        {
+          fogStart: {
+            value: fogStart,
+            min: 0,
+            max: 100,
+            step: 0.1,
+            label: "Start",
+            onChange: setFogStart,
+          },
+          fogEnd: {
+            value: fogEnd,
+            min: 0,
+            max: 100,
+            step: 0.1,
+            label: "End",
+            onChange: setFogEnd,
+          },
+          fogAmount: {
+            value: fogAmount,
+            min: 0,
+            max: 1,
+            step: 0.01,
+            label: "Amount",
+            onChange: setFogAmount,
+          },
         },
-        noiseScaleY: {
-          value: 0,
-          min: 0,
-          max: 10,
-          step: 0.01,
-          label: "Scale Y",
+        {
+          collapsed: true,
+        }
+      ),
+      Animation: folder(
+        {
+          "Add key": button(() => {
+            const state = sceneRef.current?.getCameraState();
+            if (state) {
+              setCameraStates((prev) => [...prev, state]);
+            }
+          }),
+          "Clear keys": button(() => setCameraStates([])),
+          playAnimation: {
+            value: playAnimation,
+            label: "Play",
+            onChange: setPlayAnimation,
+          },
+          animationSpeed: {
+            value: animationSpeed,
+            min: 0.1,
+            max: 5,
+            step: 0.1,
+            label: "Speed",
+            onChange: setAnimationSpeed,
+          },
+          perfectLoop: {
+            value: perfectLoop,
+            label: "Perfect Loop",
+            onChange: setPerfectLoop,
+          },
         },
-        noiseScaleZ: {
-          value: 0,
-          min: 0,
-          max: 10,
-          step: 0.01,
-          label: "Scale Z",
-        },
-        noiseSpeed: {
-          value: 0.1,
-          min: 0,
-          max: 1,
-          step: 0.01,
-          label: "Speed",
-        },
-        noiseRateX: { value: 1, min: 0, max: 10, step: 0.1, label: "Rate X" },
-        noiseRateY: { value: 1, min: 0, max: 10, step: 0.1, label: "Rate Y" },
-        noiseRateZ: { value: 1, min: 0, max: 10, step: 0.1, label: "Rate Z" },
-        noiseSharpness: {
-          value: 1,
-          min: 0.1,
-          max: 10,
-          step: 0.1,
-          label: "Sharpness",
-        },
-        gridScale: {
-          value: 0.1,
-          min: 0.01,
-          max: 1,
-          step: 0.01,
-          label: "Grid Scale",
-        },
-        gridAmount: {
-          value: 0,
-          min: 0,
-          max: 1,
-          step: 0.01,
-          label: "Grid Amount",
-        },
-      }),
-      Fog: folder({
-        fogStart: {
-          value: 0,
-          min: 0,
-          max: 100,
-          step: 0.1,
-          label: "Start",
-        },
-        fogEnd: {
-          value: 20,
-          min: 0,
-          max: 100,
-          step: 0.1,
-          label: "End",
-        },
-        fogAmount: {
-          value: 0,
-          min: 0,
-          max: 1,
-          step: 0.01,
-          label: "Amount",
-        },
-      }),
-      Animation: folder({
-        "Add key": button(() => {
-          const state = sceneRef.current?.getCameraState();
-          if (state) {
-            setCameraStates((prev) => [...prev, state]);
-          }
-        }),
-        "Clear keys": button(() => setCameraStates([])),
-        playAnimation: {
-          value: false,
-          label: "Play",
-        },
-        animationSpeed: {
-          value: 1,
-          min: 0.1,
-          max: 5,
-          step: 0.1,
-          label: "Speed",
-        },
-        perfectLoop: {
-          value: false,
-          label: "Perfect Loop",
-        },
-      }),
-      Video: folder({
-        videoResolution: {
-          options: [1280, 1920, 2560, 3840],
-          value: 1920,
-          label: "Resolution (width)",
-        },
-        videoFramerate: {
-          options: [24, 30, 60],
-          value: 60,
-          label: "Framerate",
-        },
-        videoBitrate: {
-          value: 100,
-          min: 10,
-          max: 150,
-          step: 10,
-          label: "Bitrate (Mbps)",
-        },
-        autoStopMode: {
-          options: ["Manual", "One Loop", "Duration"],
-          value: "Manual",
-          label: "Auto-stop",
-        },
-        videoDuration: {
-          value: 10,
-          min: 1,
-          max: 300,
-          step: 1,
-          label: "Duration (s)",
-        },
-        "Start/Stop Recording": button((get) => {
-          if (isRecording) {
-            handleStopRecording();
-          } else {
-            if (!sceneRef.current) return;
-            const width = get("Video.videoResolution");
-            sceneRef.current.startRecording(
-              width,
-              get("Video.videoFramerate"),
-              get("Video.videoBitrate") * 1000000, // Convert Mbps to bps
-              get("Video.autoStopMode"),
-              get("Video.videoDuration")
-            );
-            setIsRecording(true);
-          }
-        }),
-      }),
+        {
+          collapsed: true,
+        }
+      ),
 
-      Export: folder({
-        imageName: { value: "export", label: "Image Name" },
-        exportSize: {
-          options: [2000, 4000, 6000, 8000],
-          value: 4000,
-          label: "Export Size (px)",
+      Video: folder(
+        {
+          videoResolution: {
+            options: [1280, 1920, 2560, 3840],
+            value: videoResolution,
+            label: "Resolution (width)",
+            onChange: setVideoResolution,
+          },
+          videoFramerate: {
+            options: [24, 30, 60],
+            value: videoFramerate,
+            label: "Framerate",
+            onChange: setVideoFramerate,
+          },
+          videoBitrate: {
+            value: videoBitrate,
+            min: 10,
+            max: 150,
+            step: 10,
+            label: "Bitrate (Mbps)",
+            onChange: setVideoBitrate,
+          },
+          autoStopMode: {
+            options: ["Manual", "One Loop", "Duration"],
+            value: autoStopMode,
+            label: "Auto-stop",
+            onChange: setAutoStopMode,
+          },
+          videoDuration: {
+            value: videoDuration,
+            min: 1,
+            max: 300,
+            step: 1,
+            label: "Duration (s)",
+            onChange: setVideoDuration,
+          },
+          "Start/Stop Recording": button((get) => {
+            if (isRecording) {
+              handleStopRecording();
+            } else {
+              if (!sceneRef.current) return;
+              const width = get("Video.videoResolution");
+              sceneRef.current.startRecording(
+                width,
+                get("Video.videoFramerate"),
+                get("Video.videoBitrate") * 1000000, // Convert Mbps to bps
+                get("Video.autoStopMode"),
+                get("Video.videoDuration")
+              );
+              setIsRecording(true);
+            }
+          }),
+          recordingProgress: {
+            value: ``,
+            render: () => isRecording && autoStopMode !== "Manual",
+            editable: false,
+            label: "Recording Progress",
+          },
         },
-        Export: button(() => {
-          if (sceneRef.current) {
-            sceneRef.current.exportImage(imageName);
-          }
-        }),
-      }),
-    },
-    [isRecording]
-  ) as unknown as {
-    background: { r: number; g: number; b: number; a: number };
-    aspectRatio: string;
-    exportSize: number;
-    playAnimation: boolean;
-    animationSpeed: number;
-    imageName: string;
-    splatAlphaRemovalThreshold: number;
-    perfectLoop: boolean;
-    videoResolution: number;
-    videoFramerate: number;
-    videoBitrate: number;
-    autoStopMode: string;
-    videoDuration: number;
-  } & SplatParams;
+        {
+          collapsed: true,
+        }
+      ),
+
+      Image: folder(
+        {
+          imageName: {
+            value: imageName,
+            label: "Image Name",
+            onChange: setImageName,
+          },
+          exportSize: {
+            options: [2000, 4000, 6000, 8000],
+            value: exportSize,
+            label: "Export Size (px)",
+            onChange: setExportSize,
+          },
+          Export: button(() => {
+            if (sceneRef.current) {
+              sceneRef.current.exportImage(imageName);
+            }
+          }),
+        },
+        {
+          collapsed: true,
+        }
+      ),
+    }),
+    [isRecording, autoStopMode]
+  );
 
   const handleStopRecording = () => {
     if (!sceneRef.current) return;
@@ -297,11 +429,6 @@ export default function App() {
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [splatSource, setSplatSource] = useState<{
-    url: string;
-    format: GaussianSplats3D.SceneFormat;
-  } | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -337,7 +464,7 @@ export default function App() {
       <Leva
         theme={{
           colors: {
-            elevation1: "#000000aa",
+            elevation1: "#00000033",
             elevation2: "#00000000",
             elevation3: "#00000088",
             highlight1: "#ffffff",
@@ -347,8 +474,11 @@ export default function App() {
             accent2: "#727272",
             accent3: "#727272",
           },
+          sizes: {
+            rootWidth: "350px",
+          },
         }}
-        titleBar={{ title: "Scene Controls", drag: false }}
+        titleBar={{ title: "Controls", drag: false, filter: false }}
       />
 
       <div className="relative w-screen h-screen flex items-center justify-center bg-black">
@@ -368,7 +498,7 @@ export default function App() {
             maxHeight: "100vh",
           }}
         >
-          <Canvas gl={{ preserveDrawingBuffer: true }}>
+          <Canvas gl={{ preserveDrawingBuffer: true }} dpr={dpr}>
             <color
               attach="background"
               args={[
@@ -377,18 +507,20 @@ export default function App() {
                 background.b / 255,
               ]}
             />
+            <PerformanceMonitor
+              onIncline={() => {
+                if (!isRecording) setDpr(2);
+              }}
+              onDecline={() => {
+                if (!isRecording) setDpr(1);
+              }}
+            />
             <Scene
               ref={sceneRef}
-              splatSource={splatSource}
-              exportSize={exportSize}
-              ratio={ratio}
-              cameraStates={cameraStates}
-              playAnimation={playAnimation}
-              animationSpeed={animationSpeed}
-              splatParams={splatParams}
-              splatAlphaRemovalThreshold={splatAlphaRemovalThreshold}
               onRecordingFinish={handleStopRecording}
-              perfectLoop={perfectLoop}
+              onRecordingProgress={(progress) =>
+                set({ recordingProgress: `${Math.round(progress * 100)}%` })
+              }
             />
           </Canvas>
         </div>
