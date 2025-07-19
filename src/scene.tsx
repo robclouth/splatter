@@ -13,13 +13,13 @@ import {
 } from "react";
 import {
   CatmullRomCurve3,
+  Group,
   PerspectiveCamera,
-  Quaternion,
+  ShaderMaterial,
   Vector2,
   Vector3,
 } from "three";
-import type { SceneRef, SplatParams } from "./app";
-import { Group, ShaderMaterial } from "three";
+import type { CameraState, SceneRef, SplatParams } from "./app";
 import { fragmentShader } from "./fragment-shader";
 import { vertexShader } from "./vertex-shader";
 const { ACTION } = CameraControlsImpl;
@@ -35,7 +35,7 @@ export const Scene = forwardRef<
     } | null;
     exportSize: number;
     ratio: number;
-    cameraStates: { position: Vector3; quaternion: Quaternion; zoom: number }[];
+    cameraStates: CameraState[];
     playAnimation: boolean;
     animationSpeed: number;
     splatParams: SplatParams;
@@ -232,8 +232,15 @@ export const Scene = forwardRef<
         if (!controlsRef.current) return null;
         const position = new Vector3();
         controlsRef.current.getPosition(position);
+        const target = new Vector3();
+        controlsRef.current.getTarget(target);
         const zoom = (controlsRef.current.camera as PerspectiveCamera).zoom;
-        return { position, quaternion: camera.quaternion.clone(), zoom };
+        return {
+          position,
+          quaternion: camera.quaternion.clone(),
+          target,
+          zoom,
+        };
       },
       startRecording: async (
         width: number,
@@ -264,6 +271,8 @@ export const Scene = forwardRef<
           encoderRef.current.frameRate = framerate;
           // Convert bitrate from bps to kbps as expected by the encoder
           encoderRef.current.kbps = Math.floor(bitrate / 1000);
+          encoderRef.current.speed = 10;
+          encoderRef.current.quantizationParameter = 10;
           encoderRef.current.initialize();
 
           // Store original size and pixel ratio
@@ -328,18 +337,24 @@ export const Scene = forwardRef<
       },
     }));
 
-    const { positionCurve, zoomCurve } = useMemo(() => {
+    const { positionCurve, targetCurve, zoomCurve } = useMemo(() => {
       if (cameraStates.length < 2) {
-        return { positionCurve: null, zoomCurve: null };
+        return { positionCurve: null, targetCurve: null, zoomCurve: null };
       }
       const points = cameraStates.map((s) => s.position);
+      const targets = cameraStates.map((s) => s.target);
       const zooms = cameraStates.map((s) => s.zoom);
 
       // For a closed loop, CatmullRomCurve3 doesn't need the first point repeated at the end.
       const posCurve = new CatmullRomCurve3(points, true, "catmullrom", 0.5);
+      const tgtCurve = new CatmullRomCurve3(targets, true, "catmullrom", 0.5);
 
       // We will handle zoom interpolation within the segments.
-      return { positionCurve: posCurve, zoomCurve: zooms };
+      return {
+        positionCurve: posCurve,
+        targetCurve: tgtCurve,
+        zoomCurve: zooms,
+      };
     }, [cameraStates]);
 
     const animationState = useRef({
@@ -358,6 +373,7 @@ export const Scene = forwardRef<
         playAnimation &&
         cameraStates.length >= 2 &&
         positionCurve &&
+        targetCurve &&
         zoomCurve
       ) {
         if (controlsRef.current) controlsRef.current.enabled = false;
@@ -372,27 +388,23 @@ export const Scene = forwardRef<
         }
         const t = animationState.current.progress;
 
-        // Position from Catmull-Rom curve
+        // Position and target from Catmull-Rom curves
         positionCurve.getPointAt(t, camera.position);
+        const target = targetCurve.getPointAt(t);
+        camera.lookAt(target);
 
-        // For rotation and zoom, we find the current segment and progress within it
+        // For zoom, we find the current segment and progress within it
         const segmentCount = cameraStates.length;
         const scaledT = t * segmentCount;
         const currentIndex = Math.floor(scaledT);
         const segmentProgress = scaledT - currentIndex;
 
-        // Smoother step for slerp and lerp
+        // Smoother step for lerp
         const smoothSegmentProgress =
           segmentProgress * segmentProgress * (3 - 2 * segmentProgress);
 
         const start = cameraStates[currentIndex];
         const end = cameraStates[(currentIndex + 1) % segmentCount];
-
-        camera.quaternion.slerpQuaternions(
-          start.quaternion,
-          end.quaternion,
-          smoothSegmentProgress
-        );
 
         (camera as PerspectiveCamera).zoom =
           start.zoom * (1 - smoothSegmentProgress) +

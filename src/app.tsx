@@ -27,13 +27,16 @@ export type SplatParams = {
   videoBitrate: number;
 };
 
+export type CameraState = {
+  position: Vector3;
+  quaternion: Quaternion;
+  target: Vector3;
+  zoom: number;
+};
+
 export type SceneRef = {
   exportImage: (filename: string) => void;
-  getCameraState: () => {
-    position: Vector3;
-    quaternion: Quaternion;
-    zoom: number;
-  } | null;
+  getCameraState: () => CameraState | null;
   startRecording: (
     width: number,
     framerate: number,
@@ -48,7 +51,12 @@ export default function App() {
   const sceneRef = useRef<SceneRef>(null);
 
   const [cameraStates, setCameraStates] = useState<
-    { position: Vector3; quaternion: Quaternion; zoom: number }[]
+    {
+      position: Vector3;
+      quaternion: Quaternion;
+      target: Vector3;
+      zoom: number;
+    }[]
   >([]);
 
   const [isRecording, setIsRecording] = useState(false);
