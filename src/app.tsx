@@ -21,6 +21,20 @@ import {
   gridScaleAtom,
   imageNameAtom,
   isRecordingAtom,
+  lightColorAtom,
+  lightIntensityAtom,
+  lightRadiusAtom,
+  lightingEnabledAtom,
+  lightXAtom,
+  lightYAtom,
+  lightZAtom,
+  ambientLightIntensityAtom,
+  focusFocalDistanceAtom,
+  focusFocalDepthAtom,
+  focusMaxSizeAtom,
+  moveSpeedXAtom,
+  moveSpeedYAtom,
+  moveSpeedZAtom,
   noiseRateXAtom,
   noiseRateYAtom,
   noiseRateZAtom,
@@ -128,6 +142,24 @@ export default function App() {
   const [wrapCubeSizeX, setWrapCubeSizeX] = useAtom(wrapCubeSizeXAtom);
   const [wrapCubeSizeY, setWrapCubeSizeY] = useAtom(wrapCubeSizeYAtom);
   const [wrapCubeSizeZ, setWrapCubeSizeZ] = useAtom(wrapCubeSizeZAtom);
+  const [lightingEnabled, setLightingEnabled] = useAtom(lightingEnabledAtom);
+  const [lightColor, setLightColor] = useAtom(lightColorAtom);
+  const [lightIntensity, setLightIntensity] = useAtom(lightIntensityAtom);
+  const [lightX, setLightX] = useAtom(lightXAtom);
+  const [lightY, setLightY] = useAtom(lightYAtom);
+  const [lightZ, setLightZ] = useAtom(lightZAtom);
+  const [lightRadius, setLightRadius] = useAtom(lightRadiusAtom);
+  const [ambientLightIntensity, setAmbientLightIntensity] = useAtom(
+    ambientLightIntensityAtom
+  );
+  const [focusFocalDistance, setFocusFocalDistance] = useAtom(
+    focusFocalDistanceAtom
+  );
+  const [focusFocalDepth, setFocusFocalDepth] = useAtom(focusFocalDepthAtom);
+  const [focusMaxSize, setFocusMaxSize] = useAtom(focusMaxSizeAtom);
+  const [moveSpeedX, setMoveSpeedX] = useAtom(moveSpeedXAtom);
+  const [moveSpeedY, setMoveSpeedY] = useAtom(moveSpeedYAtom);
+  const [moveSpeedZ, setMoveSpeedZ] = useAtom(moveSpeedZAtom);
   const [playAnimation, setPlayAnimation] = useAtom(playAnimationAtom);
   const [animationSpeed, setAnimationSpeed] = useAtom(animationSpeedAtom);
   const [perfectLoop, setPerfectLoop] = useAtom(perfectLoopAtom);
@@ -156,7 +188,7 @@ export default function App() {
         splatSizeThreshold: {
           value: splatSizeThreshold,
           min: 0,
-          max: 1000,
+          max: 10000,
           step: 1,
           label: "Size Threshold",
           onChange: setSplatSizeThreshold,
@@ -324,6 +356,30 @@ export default function App() {
             label: "Size Z",
             onChange: setWrapCubeSizeZ,
           },
+          moveSpeedX: {
+            value: moveSpeedX,
+            min: -10,
+            max: 10,
+            step: 0.1,
+            label: "Speed X",
+            onChange: setMoveSpeedX,
+          },
+          moveSpeedY: {
+            value: moveSpeedY,
+            min: -10,
+            max: 10,
+            step: 0.1,
+            label: "Speed Y",
+            onChange: setMoveSpeedY,
+          },
+          moveSpeedZ: {
+            value: moveSpeedZ,
+            min: -10,
+            max: 10,
+            step: 0.1,
+            label: "Speed Z",
+            onChange: setMoveSpeedZ,
+          },
         },
         {
           collapsed: true,
@@ -337,6 +393,7 @@ export default function App() {
             max: 100,
             step: 0.1,
             label: "Start",
+            hint: "Distance from camera to start fogging",
             onChange: setFogStart,
           },
           fogEnd: {
@@ -354,6 +411,109 @@ export default function App() {
             step: 0.01,
             label: "Amount",
             onChange: setFogAmount,
+          },
+        },
+        {
+          collapsed: true,
+        }
+      ),
+      Lighting: folder(
+        {
+          lightingEnabled: {
+            value: lightingEnabled,
+            label: "Enabled",
+            onChange: setLightingEnabled,
+          },
+          ambientLightIntensity: {
+            value: ambientLightIntensity,
+            min: 0,
+            max: 1,
+            step: 0.01,
+            label: "Ambient",
+            onChange: setAmbientLightIntensity,
+            render: (get) => get("Lighting.lightingEnabled"),
+          },
+          lightColor: {
+            value: lightColor,
+            label: "Color",
+            onChange: setLightColor,
+            render: (get) => get("Lighting.lightingEnabled"),
+          },
+          lightIntensity: {
+            value: lightIntensity,
+            min: 0,
+            max: 10,
+            step: 0.1,
+            label: "Intensity",
+            onChange: setLightIntensity,
+            render: (get) => get("Lighting.lightingEnabled"),
+          },
+          lightX: {
+            value: lightX,
+            min: -10,
+            max: 10,
+            step: 0.01,
+            label: "X",
+            onChange: setLightX,
+            render: (get) => get("Lighting.lightingEnabled"),
+          },
+          lightY: {
+            value: lightY,
+            min: -10,
+            max: 10,
+            step: 0.01,
+            label: "Y",
+            onChange: setLightY,
+            render: (get) => get("Lighting.lightingEnabled"),
+          },
+          lightZ: {
+            value: lightZ,
+            min: -10,
+            max: 10,
+            step: 0.01,
+            label: "Z",
+            onChange: setLightZ,
+            render: (get) => get("Lighting.lightingEnabled"),
+          },
+          lightRadius: {
+            value: lightRadius,
+            min: 0,
+            max: 10,
+            step: 0.01,
+            label: "Radius",
+            onChange: setLightRadius,
+            render: (get) => get("Lighting.lightingEnabled"),
+          },
+        },
+        {
+          collapsed: true,
+        }
+      ),
+      Focus: folder(
+        {
+          focusFocalDistance: {
+            value: focusFocalDistance,
+            min: 0,
+            max: 100,
+            step: 0.1,
+            label: "Focal Distance",
+            onChange: setFocusFocalDistance,
+          },
+          focusFocalDepth: {
+            value: focusFocalDepth,
+            min: 0.01,
+            max: 20,
+            step: 0.01,
+            label: "Focal Depth",
+            onChange: setFocusFocalDepth,
+          },
+          focusMaxSize: {
+            value: focusMaxSize,
+            min: 1,
+            max: 10,
+            step: 0.01,
+            label: "Max Size Multiplier",
+            onChange: setFocusMaxSize,
           },
         },
         {
@@ -481,7 +641,7 @@ export default function App() {
         }
       ),
     }),
-    [isRecording, autoStopMode]
+    [isRecording, autoStopMode, lightingEnabled]
   );
 
   const handleStopRecording = () => {

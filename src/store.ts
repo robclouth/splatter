@@ -175,6 +175,73 @@ export const wrapCubeSizeZAtom = atomWithStorage(
     getOnInit: true,
   }
 );
+export const lightingEnabledAtom = atomWithStorage(
+  "lightingEnabled",
+  false,
+  undefined,
+  { getOnInit: true }
+);
+export const lightColorAtom = atomWithStorage(
+  "lightColor",
+  { r: 255, g: 255, b: 255 },
+  undefined,
+  { getOnInit: true }
+);
+export const lightIntensityAtom = atomWithStorage(
+  "lightIntensity",
+  1,
+  undefined,
+  { getOnInit: true }
+);
+export const lightXAtom = atomWithStorage("lightX", 0, undefined, {
+  getOnInit: true,
+});
+export const lightYAtom = atomWithStorage("lightY", 0, undefined, {
+  getOnInit: true,
+});
+export const lightRadiusAtom = atomWithStorage("lightRadius", 1, undefined, {
+  getOnInit: true,
+});
+export const lightZAtom = atomWithStorage("lightZ", 0, undefined, {
+  getOnInit: true,
+});
+export const ambientLightIntensityAtom = atomWithStorage(
+  "ambientLightIntensity",
+  1,
+  undefined,
+  { getOnInit: true }
+);
+export const focusFocalDistanceAtom = atomWithStorage(
+  "focusFocalDistance",
+  10,
+  undefined,
+  { getOnInit: true }
+);
+export const focusFocalDepthAtom = atomWithStorage(
+  "focusFocalDepth",
+  2,
+  undefined,
+  { getOnInit: true }
+);
+export const focusMaxSizeAtom = atomWithStorage("focusMaxSize", 2, undefined, {
+  getOnInit: true,
+});
+// Add move speed atoms
+export const moveSpeedXAtom = atomWithStorage("moveSpeedX", 0, undefined, {
+  getOnInit: true,
+});
+export const moveSpeedYAtom = atomWithStorage("moveSpeedY", 0, undefined, {
+  getOnInit: true,
+});
+export const moveSpeedZAtom = atomWithStorage("moveSpeedZ", 0, undefined, {
+  getOnInit: true,
+});
+export const lockWrapCubeToCameraAtom = atomWithStorage(
+  "lockWrapCubeToCamera",
+  false,
+  undefined,
+  { getOnInit: true }
+);
 export const playAnimationAtom = atom(false);
 export const animationSpeedAtom = atomWithStorage(
   "animationSpeed",

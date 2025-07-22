@@ -57,17 +57,27 @@ precision highp float;
         varying vec2 vPosition;
 
         uniform float time;
-              uniform vec3 noiseScale;
-              uniform float noiseSpeed;
-              uniform vec3 noiseRate;
-              uniform float noiseSharpness;
-              uniform float gridScale;
-              uniform float gridAmount;
-              uniform float fogStart;
-              uniform float fogEnd;
-              uniform float fogAmount;
-              uniform vec3 wrapCubeSize;
-              varying float vDist;
+        uniform vec3 noiseScale;
+        uniform float noiseSpeed;
+        uniform vec3 noiseRate;
+        uniform float noiseSharpness;
+        uniform float gridScale;
+        uniform float gridAmount;
+        uniform float fogStart;
+        uniform float fogEnd;
+        uniform float fogAmount;
+        uniform vec3 wrapCubeSize;
+        uniform int lightingEnabled;
+        uniform vec3 lightColor;
+        uniform float lightIntensity;
+        uniform vec3 lightPos;
+        uniform float lightRadius;
+        uniform float ambientLightIntensity;
+        uniform float focusFocalDistance;
+        uniform float focusFocalDepth;
+        uniform float focusMaxSize;
+        varying float vDist;
+        uniform vec3 moveSpeed;
 
               vec4 mod289(vec4 x) {
   return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -263,10 +273,11 @@ float snoise(vec4 v)
 
               splatCenter += noise * noiseScale;
 
-              if (wrapCubeSize.x > 0.0 || wrapCubeSize.y > 0.0 || wrapCubeSize.z > 0.0) {
-                  vec3 halfSize = wrapCubeSize / 2.0;
-                  splatCenter = mod(splatCenter + halfSize, wrapCubeSize) - halfSize;
-              }
+            if (wrapCubeSize.x > 0.0 || wrapCubeSize.y > 0.0 || wrapCubeSize.z > 0.0) {
+                splatCenter += moveSpeed * time;
+                vec3 halfSize = wrapCubeSize / 2.0;
+                splatCenter = mod(splatCenter + halfSize, wrapCubeSize) - halfSize;
+            }
 
             uint sceneIndex = uint(0);
             if (sceneCount > 1) {
@@ -397,6 +408,17 @@ float snoise(vec4 v)
 
             }
 
+            if (lightingEnabled == 1) {
+                float pointIntensity = 0.0;
+                float dist = distance(splatCenter.xyz, lightPos);
+                if (dist < lightRadius) {
+                    float attenuation = 1.0 - smoothstep(0.0, lightRadius, dist);
+                    pointIntensity = attenuation * lightIntensity;
+                }
+                vec3 totalIntensity = vec3(ambientLightIntensity) + pointIntensity * lightColor;
+                vColor.rgb *= totalIntensity;
+            }
+
             
 
             vec4 sampledCovarianceA;
@@ -489,6 +511,11 @@ float snoise(vec4 v)
             float eigenValue1 = traceOver2 + term2;
             float eigenValue2 = traceOver2 - term2;
 
+            // Focus effect: scale multiplier based on distance from camera
+            float focusDist = abs(vDist - focusFocalDistance);
+            float focusT = clamp(focusDist / focusFocalDepth, 0.0, 1.0);
+            float focusScale = mix(1.0, focusMaxSize, focusT);
+
             if (eigenValue1 > splatSizeThreshold) {
                 gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
                 return;
@@ -505,8 +532,8 @@ float snoise(vec4 v)
             vec2 eigenVector2 = vec2(eigenVector1.y, -eigenVector1.x);
 
             // We use sqrt(8) standard deviations instead of 3 to eliminate more of the splat with a very low opacity.
-            vec2 basisVector1 = eigenVector1 * splatScale * min(sqrt8 * sqrt(eigenValue1), 1024.0);
-            vec2 basisVector2 = eigenVector2 * splatScale * min(sqrt8 * sqrt(eigenValue2), 1024.0);
+            vec2 basisVector1 = eigenVector1 * splatScale * focusScale * min(sqrt8 * sqrt(eigenValue1), 1024.0);
+            vec2 basisVector2 = eigenVector2 * splatScale * focusScale * min(sqrt8 * sqrt(eigenValue2), 1024.0);
             
             vec2 ndcOffset = vec2(vPosition.x * basisVector1 + vPosition.y * basisVector2) *
                              basisViewport * 2.0 * inverseFocalAdjustment;

@@ -34,6 +34,17 @@ import {
   gridAmountAtom,
   gridScaleAtom,
   isRecordingAtom,
+  lightColorAtom,
+  lightIntensityAtom,
+  lightRadiusAtom,
+  lightingEnabledAtom,
+  lightXAtom,
+  lightYAtom,
+  lightZAtom,
+  ambientLightIntensityAtom,
+  focusFocalDistanceAtom,
+  focusFocalDepthAtom,
+  focusMaxSizeAtom,
   noiseRateXAtom,
   noiseRateYAtom,
   noiseRateZAtom,
@@ -52,6 +63,10 @@ import {
   wrapCubeSizeXAtom,
   wrapCubeSizeYAtom,
   wrapCubeSizeZAtom,
+  // Add move speed atoms
+  moveSpeedXAtom,
+  moveSpeedYAtom,
+  moveSpeedZAtom,
 } from "./store";
 import { vertexShader } from "./vertex-shader";
 const { ACTION } = CameraControlsImpl;
@@ -103,6 +118,22 @@ export const Scene = forwardRef<
   const wrapCubeSizeX = useAtomValue(wrapCubeSizeXAtom);
   const wrapCubeSizeY = useAtomValue(wrapCubeSizeYAtom);
   const wrapCubeSizeZ = useAtomValue(wrapCubeSizeZAtom);
+  const lightingEnabled = useAtomValue(lightingEnabledAtom);
+  const lightColor = useAtomValue(lightColorAtom);
+  const lightIntensity = useAtomValue(lightIntensityAtom);
+  const lightX = useAtomValue(lightXAtom);
+  const lightY = useAtomValue(lightYAtom);
+  const lightZ = useAtomValue(lightZAtom);
+  const lightRadius = useAtomValue(lightRadiusAtom);
+  const ambientLightIntensity = useAtomValue(ambientLightIntensityAtom);
+  const focusFocalDistance = useAtomValue(focusFocalDistanceAtom);
+  const focusFocalDepth = useAtomValue(focusFocalDepthAtom);
+  const focusMaxSize = useAtomValue(focusMaxSizeAtom);
+  // Add move speed atoms
+  const moveSpeedX = useAtomValue(moveSpeedXAtom);
+  const moveSpeedY = useAtomValue(moveSpeedYAtom);
+  const moveSpeedZ = useAtomValue(moveSpeedZAtom);
+
   const cameraStates = useAtomValue(cameraStatesAtom);
   const playAnimation = useAtomValue(playAnimationAtom);
   const animationSpeed = useAtomValue(animationSpeedAtom);
@@ -143,6 +174,17 @@ export const Scene = forwardRef<
       mat.uniforms.wrapCubeSize = { value: [0, 0, 0] };
       mat.uniforms.splatSizeThreshold = { value: 1000.0 };
       mat.uniforms.splatAlphaRemovalThreshold = { value: 1.0 / 255.0 };
+      mat.uniforms.lightingEnabled = { value: 0 };
+      mat.uniforms.lightColor = { value: [1, 1, 1] };
+      mat.uniforms.lightIntensity = { value: 1.0 };
+      mat.uniforms.lightPos = { value: [0, 0, 0] };
+      mat.uniforms.lightRadius = { value: 1.0 };
+      mat.uniforms.ambientLightIntensity = { value: 1.0 };
+      mat.uniforms.focusFocalDistance = { value: 10.0 };
+      mat.uniforms.focusFocalDepth = { value: 2.0 };
+      mat.uniforms.focusMaxSize = { value: 2.0 };
+      // Add moveSpeed uniform
+      mat.uniforms.moveSpeed = { value: [0, 0, 0] };
       mat.defines = { ...(mat.defines || {}), DITHERED_ALPHA: "" };
 
       // 2. patch the shader just once
@@ -207,6 +249,27 @@ export const Scene = forwardRef<
       uniforms.splatAlphaRemovalThreshold.value =
         splatAlphaRemovalThreshold / 255.0;
     if (uniforms.splatScale) uniforms.splatScale.value = splatScale;
+    if (uniforms.lightingEnabled)
+      uniforms.lightingEnabled.value = lightingEnabled ? 1 : 0;
+    if (uniforms.lightColor)
+      uniforms.lightColor.value = [
+        lightColor.r / 255,
+        lightColor.g / 255,
+        lightColor.b / 255,
+      ];
+    if (uniforms.lightIntensity) uniforms.lightIntensity.value = lightIntensity;
+    if (uniforms.lightPos) uniforms.lightPos.value = [lightX, lightY, lightZ];
+    if (uniforms.lightRadius) uniforms.lightRadius.value = lightRadius;
+    if (uniforms.ambientLightIntensity)
+      uniforms.ambientLightIntensity.value = ambientLightIntensity;
+    if (uniforms.focusFocalDistance)
+      uniforms.focusFocalDistance.value = focusFocalDistance;
+    if (uniforms.focusFocalDepth)
+      uniforms.focusFocalDepth.value = focusFocalDepth;
+    if (uniforms.focusMaxSize) uniforms.focusMaxSize.value = focusMaxSize;
+    // Set moveSpeed uniform
+    if (uniforms.moveSpeed)
+      uniforms.moveSpeed.value = [moveSpeedX, moveSpeedY, moveSpeedZ];
   }, [
     noisiness,
     ditherGranularity,
@@ -230,6 +293,20 @@ export const Scene = forwardRef<
     splatSizeThreshold,
     splatAlphaRemovalThreshold,
     splatScale,
+    lightingEnabled,
+    lightColor,
+    lightIntensity,
+    lightX,
+    lightY,
+    lightZ,
+    lightRadius,
+    ambientLightIntensity,
+    focusFocalDistance,
+    focusFocalDepth,
+    focusMaxSize,
+    moveSpeedX,
+    moveSpeedY,
+    moveSpeedZ,
   ]);
 
   useEffect(() => {
