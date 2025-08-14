@@ -67,7 +67,6 @@ export const splatSourceAtom = atom<{
   format: GaussianSplats3D.SceneFormat;
 } | null>(null);
 
-// Leva controls state as atoms
 export const splatAlphaRemovalThresholdAtom = atomWithStorage(
   "splatAlphaRemovalThreshold",
   1 / 255,

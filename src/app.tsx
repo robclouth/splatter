@@ -2,8 +2,8 @@
 import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import { Canvas } from "@react-three/fiber";
 import { useAtom, useSetAtom } from "jotai";
-import { button, folder, Leva, useControls } from "leva";
-import { useRef, useState } from "react";
+import { Pane } from "tweakpane";
+import { useEffect, useRef, useState } from "react";
 import { Quaternion, Vector3 } from "three";
 import { Scene } from "./scene";
 import {
@@ -171,478 +171,533 @@ export default function App() {
   const [imageName, setImageName] = useAtom(imageNameAtom);
   const [exportSize, setExportSize] = useAtom(exportSizeAtom);
 
-  const [, set] = useControls(
-    () => ({
-      Import: folder({
-        "Load Splat": button(() => fileInputRef.current?.click()),
-      }),
-      Splats: folder({
-        splatAlphaRemovalThreshold: {
-          value: splatAlphaRemovalThreshold,
-          min: 0,
-          max: 255,
-          step: 1,
-          label: "Alpha Threshold",
-          onChange: setSplatAlphaRemovalThreshold,
-        },
-        splatSizeThreshold: {
-          value: splatSizeThreshold,
-          min: 0,
-          max: 10000,
-          step: 1,
-          label: "Size Threshold",
-          onChange: setSplatSizeThreshold,
-        },
-        splatScale: {
-          value: splatScale,
-          min: 0.1,
-          max: 5,
-          step: 0.1,
-          label: "Scale",
-          onChange: setSplatScale,
-        },
-      }),
-      Canvas: folder(
-        {
-          background: {
-            value: background,
-            label: "Background Color",
-            onChange: setBackground,
-          },
-          aspectRatio: {
-            options: ["16:9", "4:3", "3:2", "1:1", "9:16", "3:4", "2:3"],
-            value: aspectRatio,
-            label: "Aspect Ratio",
-            onChange: setAspectRatio,
-          },
-        },
-        {
-          collapsed: true,
-        }
-      ),
-      Grain: folder(
-        {
-          noisiness: {
-            value: noisiness,
-            min: 0,
-            max: 1,
-            step: 0.01,
-            label: "Amount",
-            onChange: setNoisiness,
-          },
-          ditherGranularity: {
-            value: ditherGranularity,
-            min: 1,
-            max: 1000000,
-            step: 1,
-            label: "Hash",
-            onChange: setDitherGranularity,
-          },
-        },
-        {
-          collapsed: true,
-        }
-      ),
-      Noise: folder(
-        {
-          noiseScaleX: {
-            value: noiseScaleX,
-            min: 0,
-            max: 10,
-            step: 0.01,
-            label: "Scale X",
-            onChange: setNoiseScaleX,
-          },
-          noiseScaleY: {
-            value: noiseScaleY,
-            min: 0,
-            max: 10,
-            step: 0.01,
-            label: "Scale Y",
-            onChange: setNoiseScaleY,
-          },
-          noiseScaleZ: {
-            value: noiseScaleZ,
-            min: 0,
-            max: 10,
-            step: 0.01,
-            label: "Scale Z",
-            onChange: setNoiseScaleZ,
-          },
-          noiseSpeed: {
-            value: noiseSpeed,
-            min: 0,
-            max: 1,
-            step: 0.01,
-            label: "Speed",
-            onChange: setNoiseSpeed,
-          },
-          noiseRateX: {
-            value: noiseRateX,
-            min: 0,
-            max: 10,
-            step: 0.1,
-            label: "Rate X",
-            onChange: setNoiseRateX,
-          },
-          noiseRateY: {
-            value: noiseRateY,
-            min: 0,
-            max: 10,
-            step: 0.1,
-            label: "Rate Y",
-            onChange: setNoiseRateY,
-          },
-          noiseRateZ: {
-            value: noiseRateZ,
-            min: 0,
-            max: 10,
-            step: 0.1,
-            label: "Rate Z",
-            onChange: setNoiseRateZ,
-          },
-          noiseSharpness: {
-            value: noiseSharpness,
-            min: 0.1,
-            max: 10,
-            step: 0.1,
-            label: "Sharpness",
-            onChange: setNoiseSharpness,
-          },
-          gridScale: {
-            value: gridScale,
-            min: 0.01,
-            max: 1,
-            step: 0.01,
-            label: "Grid Scale",
-            onChange: setGridScale,
-          },
-          gridAmount: {
-            value: gridAmount,
-            min: 0,
-            max: 1,
-            step: 0.01,
-            label: "Grid Amount",
-            onChange: setGridAmount,
-          },
-        },
-        {
-          collapsed: true,
-        }
-      ),
-      Wrap: folder(
-        {
-          wrapCubeSizeX: {
-            value: wrapCubeSizeX,
-            min: 0,
-            max: 100,
-            step: 0.1,
-            label: "Size X",
-            onChange: setWrapCubeSizeX,
-          },
-          wrapCubeSizeY: {
-            value: wrapCubeSizeY,
-            min: 0,
-            max: 100,
-            step: 0.1,
-            label: "Size Y",
-            onChange: setWrapCubeSizeY,
-          },
-          wrapCubeSizeZ: {
-            value: wrapCubeSizeZ,
-            min: 0,
-            max: 100,
-            step: 0.1,
-            label: "Size Z",
-            onChange: setWrapCubeSizeZ,
-          },
-          moveSpeedX: {
-            value: moveSpeedX,
-            min: -10,
-            max: 10,
-            step: 0.1,
-            label: "Speed X",
-            onChange: setMoveSpeedX,
-          },
-          moveSpeedY: {
-            value: moveSpeedY,
-            min: -10,
-            max: 10,
-            step: 0.1,
-            label: "Speed Y",
-            onChange: setMoveSpeedY,
-          },
-          moveSpeedZ: {
-            value: moveSpeedZ,
-            min: -10,
-            max: 10,
-            step: 0.1,
-            label: "Speed Z",
-            onChange: setMoveSpeedZ,
-          },
-        },
-        {
-          collapsed: true,
-        }
-      ),
-      Fog: folder(
-        {
-          fogStart: {
-            value: fogStart,
-            min: 0,
-            max: 100,
-            step: 0.1,
-            label: "Start",
-            hint: "Distance from camera to start fogging",
-            onChange: setFogStart,
-          },
-          fogEnd: {
-            value: fogEnd,
-            min: 0,
-            max: 100,
-            step: 0.1,
-            label: "End",
-            onChange: setFogEnd,
-          },
-          fogAmount: {
-            value: fogAmount,
-            min: 0,
-            max: 1,
-            step: 0.01,
-            label: "Amount",
-            onChange: setFogAmount,
-          },
-        },
-        {
-          collapsed: true,
-        }
-      ),
-      Lighting: folder(
-        {
-          lightingEnabled: {
-            value: lightingEnabled,
-            label: "Enabled",
-            onChange: setLightingEnabled,
-          },
-          ambientLightIntensity: {
-            value: ambientLightIntensity,
-            min: 0,
-            max: 1,
-            step: 0.01,
-            label: "Ambient",
-            onChange: setAmbientLightIntensity,
-            render: (get) => get("Lighting.lightingEnabled"),
-          },
-          lightColor: {
-            value: lightColor,
-            label: "Color",
-            onChange: setLightColor,
-            render: (get) => get("Lighting.lightingEnabled"),
-          },
-          lightIntensity: {
-            value: lightIntensity,
-            min: 0,
-            max: 10,
-            step: 0.1,
-            label: "Intensity",
-            onChange: setLightIntensity,
-            render: (get) => get("Lighting.lightingEnabled"),
-          },
-          lightX: {
-            value: lightX,
-            min: -10,
-            max: 10,
-            step: 0.01,
-            label: "X",
-            onChange: setLightX,
-            render: (get) => get("Lighting.lightingEnabled"),
-          },
-          lightY: {
-            value: lightY,
-            min: -10,
-            max: 10,
-            step: 0.01,
-            label: "Y",
-            onChange: setLightY,
-            render: (get) => get("Lighting.lightingEnabled"),
-          },
-          lightZ: {
-            value: lightZ,
-            min: -10,
-            max: 10,
-            step: 0.01,
-            label: "Z",
-            onChange: setLightZ,
-            render: (get) => get("Lighting.lightingEnabled"),
-          },
-          lightRadius: {
-            value: lightRadius,
-            min: 0,
-            max: 10,
-            step: 0.01,
-            label: "Radius",
-            onChange: setLightRadius,
-            render: (get) => get("Lighting.lightingEnabled"),
-          },
-        },
-        {
-          collapsed: true,
-        }
-      ),
-      Focus: folder(
-        {
-          focusFocalDistance: {
-            value: focusFocalDistance,
-            min: 0,
-            max: 100,
-            step: 0.1,
-            label: "Focal Distance",
-            onChange: setFocusFocalDistance,
-          },
-          focusFocalDepth: {
-            value: focusFocalDepth,
-            min: 0.01,
-            max: 20,
-            step: 0.01,
-            label: "Focal Depth",
-            onChange: setFocusFocalDepth,
-          },
-          focusMaxSize: {
-            value: focusMaxSize,
-            min: 1,
-            max: 10,
-            step: 0.01,
-            label: "Max Size Multiplier",
-            onChange: setFocusMaxSize,
-          },
-        },
-        {
-          collapsed: true,
-        }
-      ),
-      Animation: folder(
-        {
-          "Add key": button(() => {
-            const state = sceneRef.current?.getCameraState();
-            if (state) {
-              setCameraStates((prev) => [...prev, state]);
-            }
-          }),
-          "Clear keys": button(() => setCameraStates([])),
-          playAnimation: {
-            value: playAnimation,
-            label: "Play",
-            onChange: setPlayAnimation,
-          },
-          animationSpeed: {
-            value: animationSpeed,
-            min: 0.1,
-            max: 5,
-            step: 0.1,
-            label: "Speed",
-            onChange: setAnimationSpeed,
-          },
-          perfectLoop: {
-            value: perfectLoop,
-            label: "Perfect Loop",
-            onChange: setPerfectLoop,
-          },
-        },
-        {
-          collapsed: true,
-        }
-      ),
+  const [recordingProgress, setRecordingProgress] = useState("");
 
-      Video: folder(
-        {
-          videoResolution: {
-            options: [1280, 1920, 2560, 3840],
-            value: videoResolution,
-            label: "Resolution (width)",
-            onChange: setVideoResolution,
-          },
-          videoFramerate: {
-            options: [24, 30, 60],
-            value: videoFramerate,
-            label: "Framerate",
-            onChange: setVideoFramerate,
-          },
-          videoBitrate: {
-            value: videoBitrate,
-            min: 10,
-            max: 150,
-            step: 10,
-            label: "Bitrate (Mbps)",
-            onChange: setVideoBitrate,
-          },
-          autoStopMode: {
-            options: ["Manual", "One Loop", "Duration"],
-            value: autoStopMode,
-            label: "Auto-stop",
-            onChange: setAutoStopMode,
-          },
-          videoDuration: {
-            value: videoDuration,
-            min: 1,
-            max: 300,
-            step: 1,
-            label: "Duration (s)",
-            onChange: setVideoDuration,
-          },
-          "Start/Stop Recording": button((get) => {
-            if (isRecording) {
-              handleStopRecording();
-            } else {
-              if (!sceneRef.current) return;
-              const width = get("Video.videoResolution");
-              sceneRef.current.startRecording(
-                width,
-                get("Video.videoFramerate"),
-                get("Video.videoBitrate") * 1000000, // Convert Mbps to bps
-                get("Video.autoStopMode"),
-                get("Video.videoDuration")
-              );
-              setIsRecording(true);
-            }
-          }),
-          recordingProgress: {
-            value: ``,
-            render: () => isRecording && autoStopMode !== "Manual",
-            editable: false,
-            label: "Recording Progress",
-          },
-        },
-        {
-          collapsed: true,
-        }
-      ),
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-      Image: folder(
-        {
-          imageName: {
-            value: imageName,
-            label: "Image Name",
-            onChange: setImageName,
-          },
-          exportSize: {
-            options: [2000, 4000, 6000, 8000],
-            value: exportSize,
-            label: "Export Size (px)",
-            onChange: setExportSize,
-          },
-          Export: button(() => {
-            if (sceneRef.current) {
-              sceneRef.current.exportImage(imageName);
-            }
-          }),
+  const paneRef = useRef<Pane | null>(null);
+  const params = useRef<any>({}).current;
+  const controlRefs = useRef<{ [key: string]: any }>({}).current;
+
+  Object.assign(params, {
+    splatAlphaRemovalThreshold,
+    splatSizeThreshold,
+    splatScale,
+    background,
+    aspectRatio,
+    noisiness,
+    ditherGranularity,
+    noiseScaleX,
+    noiseScaleY,
+    noiseScaleZ,
+    noiseSpeed,
+    noiseRateX,
+    noiseRateY,
+    noiseRateZ,
+    noiseSharpness,
+    gridScale,
+    gridAmount,
+    fogStart,
+    fogEnd,
+    fogAmount,
+    wrapCubeSizeX,
+    wrapCubeSizeY,
+    wrapCubeSizeZ,
+    lightingEnabled,
+    lightColor,
+    lightIntensity,
+    lightX,
+    lightY,
+    lightZ,
+    lightRadius,
+    ambientLightIntensity,
+    focusFocalDistance,
+    focusFocalDepth,
+    focusMaxSize,
+    moveSpeedX,
+    moveSpeedY,
+    moveSpeedZ,
+    playAnimation,
+    animationSpeed,
+    perfectLoop,
+    videoResolution,
+    videoFramerate,
+    videoBitrate,
+    autoStopMode,
+    videoDuration,
+    imageName,
+    exportSize,
+    recordingProgress,
+  });
+
+  useEffect(() => {
+    paneRef.current?.refresh();
+  });
+
+  useEffect(() => {
+    const pane = new Pane({
+      title: "Controls",
+    });
+    paneRef.current = pane;
+
+    const importFolder = pane.addFolder({ title: "Import" });
+    importFolder
+      .addButton({ title: "Load Splat" })
+      .on("click", () => fileInputRef.current?.click());
+
+    const splatsFolder = pane.addFolder({ title: "Splats" });
+    splatsFolder
+      .addBinding(params, "splatAlphaRemovalThreshold", {
+        min: 0,
+        max: 255,
+        step: 1,
+        label: "Alpha Removal Threshold",
+      })
+      .on("change", (e) => setSplatAlphaRemovalThreshold(e.value));
+    splatsFolder
+      .addBinding(params, "splatSizeThreshold", {
+        min: 0,
+        max: 10000,
+        step: 1,
+        label: "Size Threshold",
+      })
+      .on("change", (e) => setSplatSizeThreshold(e.value));
+    splatsFolder
+      .addBinding(params, "splatScale", {
+        min: 0.1,
+        max: 5,
+        step: 0.1,
+        label: "Scale",
+      })
+      .on("change", (e) => setSplatScale(e.value));
+
+    const canvasFolder = pane.addFolder({ title: "Canvas", expanded: false });
+    canvasFolder
+      .addBinding(params, "background", { label: "Background" })
+      .on("change", (e) =>
+        setBackground({
+          r: e.value.r,
+          g: e.value.g,
+          b: e.value.b,
+          a: e.value.a,
+        })
+      );
+    canvasFolder
+      .addBinding(params, "aspectRatio", {
+        label: "Aspect Ratio",
+        options: {
+          "16:9": "16:9",
+          "4:3": "4:3",
+          "3:2": "3:2",
+          "1:1": "1:1",
+          "9:16": "9:16",
+          "3:4": "3:4",
+          "2:3": "2:3",
         },
-        {
-          collapsed: true,
+      })
+      .on("change", (e) => setAspectRatio(e.value));
+
+    const grainFolder = pane.addFolder({ title: "Grain", expanded: false });
+    grainFolder
+      .addBinding(params, "noisiness", {
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label: "Noisiness",
+      })
+      .on("change", (e) => setNoisiness(e.value));
+    grainFolder
+      .addBinding(params, "ditherGranularity", {
+        min: 1,
+        max: 1000000,
+        step: 1,
+        label: "Dither Granularity",
+      })
+      .on("change", (e) => setDitherGranularity(e.value));
+
+    const noiseFolder = pane.addFolder({ title: "Noise", expanded: false });
+    noiseFolder
+      .addBinding(params, "noiseScaleX", {
+        min: 0,
+        max: 10,
+        step: 0.01,
+        label: "Scale X",
+      })
+      .on("change", (e) => setNoiseScaleX(e.value));
+    noiseFolder
+      .addBinding(params, "noiseScaleY", {
+        min: 0,
+        max: 10,
+        step: 0.01,
+        label: "Scale Y",
+      })
+      .on("change", (e) => setNoiseScaleY(e.value));
+    noiseFolder
+      .addBinding(params, "noiseScaleZ", {
+        min: 0,
+        max: 10,
+        step: 0.01,
+        label: "Scale Z",
+      })
+      .on("change", (e) => setNoiseScaleZ(e.value));
+    noiseFolder
+      .addBinding(params, "noiseSpeed", {
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label: "Speed",
+      })
+      .on("change", (e) => setNoiseSpeed(e.value));
+    noiseFolder
+      .addBinding(params, "noiseRateX", {
+        min: 0,
+        max: 10,
+        step: 0.1,
+        label: "Rate X",
+      })
+      .on("change", (e) => setNoiseRateX(e.value));
+    noiseFolder
+      .addBinding(params, "noiseRateY", {
+        min: 0,
+        max: 10,
+        step: 0.1,
+        label: "Rate Y",
+      })
+      .on("change", (e) => setNoiseRateY(e.value));
+    noiseFolder
+      .addBinding(params, "noiseRateZ", {
+        min: 0,
+        max: 10,
+        step: 0.1,
+        label: "Rate Z",
+      })
+      .on("change", (e) => setNoiseRateZ(e.value));
+    noiseFolder
+      .addBinding(params, "noiseSharpness", {
+        min: 0.1,
+        max: 10,
+        step: 0.1,
+        label: "Sharpness",
+      })
+      .on("change", (e) => setNoiseSharpness(e.value));
+    noiseFolder
+      .addBinding(params, "gridScale", {
+        min: 0.01,
+        max: 1,
+        step: 0.01,
+        label: "Grid Scale",
+      })
+      .on("change", (e) => setGridScale(e.value));
+    noiseFolder
+      .addBinding(params, "gridAmount", {
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label: "Grid Amount",
+      })
+      .on("change", (e) => setGridAmount(e.value));
+
+    const wrapFolder = pane.addFolder({ title: "Wrap", expanded: false });
+    wrapFolder
+      .addBinding(params, "wrapCubeSizeX", {
+        min: 0,
+        max: 100,
+        step: 0.1,
+        label: "Cube Size X",
+      })
+      .on("change", (e) => setWrapCubeSizeX(e.value));
+    wrapFolder
+      .addBinding(params, "wrapCubeSizeY", {
+        min: 0,
+        max: 100,
+        step: 0.1,
+        label: "Cube Size Y",
+      })
+      .on("change", (e) => setWrapCubeSizeY(e.value));
+    wrapFolder
+      .addBinding(params, "wrapCubeSizeZ", {
+        min: 0,
+        max: 100,
+        step: 0.1,
+        label: "Cube Size Z",
+      })
+      .on("change", (e) => setWrapCubeSizeZ(e.value));
+    wrapFolder
+      .addBinding(params, "moveSpeedX", {
+        min: -10,
+        max: 10,
+        step: 0.1,
+        label: "Move Speed X",
+      })
+      .on("change", (e) => setMoveSpeedX(e.value));
+    wrapFolder
+      .addBinding(params, "moveSpeedY", {
+        min: -10,
+        max: 10,
+        step: 0.1,
+        label: "Move Speed Y",
+      })
+      .on("change", (e) => setMoveSpeedY(e.value));
+    wrapFolder
+      .addBinding(params, "moveSpeedZ", {
+        min: -10,
+        max: 10,
+        step: 0.1,
+        label: "Move Speed Z",
+      })
+      .on("change", (e) => setMoveSpeedZ(e.value));
+
+    const fogFolder = pane.addFolder({ title: "Fog", expanded: false });
+    fogFolder
+      .addBinding(params, "fogStart", {
+        min: 0,
+        max: 100,
+        step: 0.1,
+        label: "Start",
+      })
+      .on("change", (e) => setFogStart(e.value));
+    fogFolder
+      .addBinding(params, "fogEnd", {
+        min: 0,
+        max: 100,
+        step: 0.1,
+        label: "End",
+      })
+      .on("change", (e) => setFogEnd(e.value));
+    fogFolder
+      .addBinding(params, "fogAmount", {
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label: "Amount",
+      })
+      .on("change", (e) => setFogAmount(e.value));
+
+    const lightingFolder = pane.addFolder({
+      title: "Lighting",
+      expanded: false,
+    });
+    lightingFolder
+      .addBinding(params, "lightingEnabled", { label: "Enabled" })
+      .on("change", (e) => setLightingEnabled(e.value));
+    controlRefs.ambientLightIntensity = lightingFolder
+      .addBinding(params, "ambientLightIntensity", {
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label: "Ambient Intensity",
+      })
+      .on("change", (e) => setAmbientLightIntensity(e.value));
+    controlRefs.lightColor = lightingFolder
+      .addBinding(params, "lightColor", { label: "Color" })
+      .on("change", (e) => setLightColor(e.value));
+    controlRefs.lightIntensity = lightingFolder
+      .addBinding(params, "lightIntensity", {
+        min: 0,
+        max: 10,
+        step: 0.1,
+        label: "Intensity",
+      })
+      .on("change", (e) => setLightIntensity(e.value));
+    controlRefs.lightX = lightingFolder
+      .addBinding(params, "lightX", {
+        min: -10,
+        max: 10,
+        step: 0.01,
+        label: "X",
+      })
+      .on("change", (e) => setLightX(e.value));
+    controlRefs.lightY = lightingFolder
+      .addBinding(params, "lightY", {
+        min: -10,
+        max: 10,
+        step: 0.01,
+        label: "Y",
+      })
+      .on("change", (e) => setLightY(e.value));
+    controlRefs.lightZ = lightingFolder
+      .addBinding(params, "lightZ", {
+        min: -10,
+        max: 10,
+        step: 0.01,
+        label: "Z",
+      })
+      .on("change", (e) => setLightZ(e.value));
+    controlRefs.lightRadius = lightingFolder
+      .addBinding(params, "lightRadius", {
+        min: 0,
+        max: 10,
+        step: 0.01,
+        label: "Radius",
+      })
+      .on("change", (e) => setLightRadius(e.value));
+
+    const focusFolder = pane.addFolder({ title: "Focus", expanded: false });
+    focusFolder
+      .addBinding(params, "focusFocalDistance", {
+        min: 0,
+        max: 100,
+        step: 0.1,
+        label: "Focal Distance",
+      })
+      .on("change", (e) => setFocusFocalDistance(e.value));
+    focusFolder
+      .addBinding(params, "focusFocalDepth", {
+        min: 0.01,
+        max: 20,
+        step: 0.01,
+        label: "Focal Depth",
+      })
+      .on("change", (e) => setFocusFocalDepth(e.value));
+    focusFolder
+      .addBinding(params, "focusMaxSize", {
+        min: 1,
+        max: 10,
+        step: 0.01,
+        label: "Max Size",
+      })
+      .on("change", (e) => setFocusMaxSize(e.value));
+
+    const animationFolder = pane.addFolder({
+      title: "Animation",
+      expanded: false,
+    });
+    animationFolder.addButton({ title: "Add key" }).on("click", () => {
+      const state = sceneRef.current?.getCameraState();
+      if (state) {
+        setCameraStates((prev) => [...prev, state]);
+      }
+    });
+    animationFolder
+      .addButton({ title: "Clear keys" })
+      .on("click", () => setCameraStates([]));
+    animationFolder
+      .addBinding(params, "playAnimation", { label: "Play Animation" })
+      .on("change", (e) => setPlayAnimation(e.value));
+    animationFolder
+      .addBinding(params, "animationSpeed", {
+        min: 0.1,
+        max: 5,
+        step: 0.1,
+        label: "Speed",
+      })
+      .on("change", (e) => setAnimationSpeed(e.value));
+    animationFolder
+      .addBinding(params, "perfectLoop", { label: "Perfect Loop" })
+      .on("change", (e) => setPerfectLoop(e.value));
+
+    const videoFolder = pane.addFolder({ title: "Video", expanded: false });
+    videoFolder
+      .addBinding(params, "videoResolution", {
+        label: "Resolution",
+        options: { "1280": 1280, "1920": 1920, "2560": 2560, "3840": 3840 },
+      })
+      .on("change", (e) => setVideoResolution(e.value));
+    videoFolder
+      .addBinding(params, "videoFramerate", {
+        label: "Framerate",
+        options: { "24": 24, "30": 30, "60": 60 },
+      })
+      .on("change", (e) => setVideoFramerate(e.value));
+    videoFolder
+      .addBinding(params, "videoBitrate", {
+        min: 10,
+        max: 150,
+        step: 10,
+        label: "Bitrate (Mbps)",
+      })
+      .on("change", (e) => setVideoBitrate(e.value));
+    videoFolder
+      .addBinding(params, "autoStopMode", {
+        label: "Auto-stop Mode",
+        options: {
+          Manual: "Manual",
+          "One Loop": "One Loop",
+          Duration: "Duration",
+        },
+      })
+      .on("change", (e) => setAutoStopMode(e.value));
+    videoFolder
+      .addBinding(params, "videoDuration", {
+        min: 1,
+        max: 300,
+        step: 1,
+        label: "Duration (s)",
+      })
+      .on("change", (e) => setVideoDuration(e.value));
+    videoFolder
+      .addButton({ title: isRecording ? "Stop Recording" : "Start Recording" })
+      .on("click", () => {
+        if (isRecording) {
+          handleStopRecording();
+        } else {
+          if (!sceneRef.current) return;
+          sceneRef.current.startRecording(
+            params.videoResolution,
+            params.videoFramerate,
+            params.videoBitrate * 1000000,
+            params.autoStopMode,
+            params.videoDuration
+          );
+          setIsRecording(true);
         }
-      ),
-    }),
-    [isRecording, autoStopMode, lightingEnabled]
-  );
+      });
+    controlRefs.recordingProgress = videoFolder.addBinding(
+      params,
+      "recordingProgress",
+      {
+        disabled: true,
+        label: "Progress",
+      }
+    );
+
+    const imageFolder = pane.addFolder({ title: "Image", expanded: false });
+    imageFolder
+      .addBinding(params, "imageName", { label: "File Name" })
+      .on("change", (e) => setImageName(e.value));
+    imageFolder
+      .addBinding(params, "exportSize", {
+        label: "Export Size",
+        options: { "2000": 2000, "4000": 4000, "6000": 6000, "8000": 8000 },
+      })
+      .on("change", (e) => setExportSize(e.value));
+    imageFolder.addButton({ title: "Export" }).on("click", () => {
+      if (sceneRef.current) {
+        sceneRef.current.exportImage(params.imageName);
+      }
+    });
+
+    return () => {
+      pane.dispose();
+      paneRef.current = null;
+    };
+  }, [isRecording]);
+
+  useEffect(() => {
+    Object.values(controlRefs).forEach((control) => {
+      if (
+        [
+          "ambientLightIntensity",
+          "lightColor",
+          "lightIntensity",
+          "lightX",
+          "lightY",
+          "lightZ",
+          "lightRadius",
+        ].includes(control.key)
+      ) {
+        control.hidden = !lightingEnabled;
+      }
+    });
+  }, [lightingEnabled]);
+
+  useEffect(() => {
+    if (controlRefs.recordingProgress) {
+      controlRefs.recordingProgress.hidden = !(
+        isRecording && autoStopMode !== "Manual"
+      );
+    }
+  }, [isRecording, autoStopMode]);
 
   const handleStopRecording = () => {
     if (!sceneRef.current) return;
@@ -651,8 +706,6 @@ export default function App() {
       console.log("Recording finished");
     });
   };
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -685,26 +738,6 @@ export default function App() {
 
   return (
     <>
-      <Leva
-        theme={{
-          colors: {
-            elevation1: "#00000033",
-            elevation2: "#00000000",
-            elevation3: "#00000088",
-            highlight1: "#ffffff",
-            highlight2: "#ffffff",
-            highlight3: "#ffffff",
-            accent1: "#727272",
-            accent2: "#727272",
-            accent3: "#727272",
-          },
-          sizes: {
-            rootWidth: "350px",
-          },
-        }}
-        titleBar={{ title: "Controls", drag: false, filter: false }}
-      />
-
       <div className="relative w-screen h-screen flex items-center justify-center bg-black">
         <input
           type="file"
@@ -743,7 +776,7 @@ export default function App() {
               ref={sceneRef}
               onRecordingFinish={handleStopRecording}
               onRecordingProgress={(progress) =>
-                set({ recordingProgress: `${Math.round(progress * 100)}%` })
+                setRecordingProgress(`${Math.round(progress * 100)}%`)
               }
             />
           </Canvas>
