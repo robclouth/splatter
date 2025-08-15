@@ -516,10 +516,10 @@ float snoise(vec4 v)
             float focusT = clamp(focusDist / focusFocalDepth, 0.0, 1.0);
             float focusScale = mix(1.0, focusMaxSize, focusT);
 
-            if (eigenValue1 > splatSizeThreshold) {
-                gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
-                return;
-            }
+            // if (eigenValue1 > splatSizeThreshold) {
+            //     gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+            //     return;
+            // }
 
             if (pointCloudModeEnabled == 1) {
                 eigenValue1 = eigenValue2 = 0.2;
