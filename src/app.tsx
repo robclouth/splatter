@@ -211,6 +211,58 @@ export default function App() {
   const [imageName, setImageName] = useAtom(imageNameAtom);
   const [exportSize, setExportSize] = useAtom(exportSizeAtom);
 
+  const resetControls = () => {
+    setSplatAlphaRemovalThreshold(1 / 255);
+    setSplatSizeThreshold(1000);
+    setSplatScale(1);
+    setBackground({ r: 255, g: 255, b: 255, a: 1 });
+    setAspectRatio("16:9");
+    setNoisiness(0.1);
+    setDitherGranularity(1);
+    setNoiseScaleX(0);
+    setNoiseScaleY(0);
+    setNoiseScaleZ(0);
+    setNoiseSpeed(0.1);
+    setNoiseRateX(1);
+    setNoiseRateY(1);
+    setNoiseRateZ(1);
+    setNoiseSharpness(1);
+    setGridScale(0.1);
+    setGridAmount(0);
+    setFogStart(0);
+    setFogEnd(20);
+    setFogAmount(0);
+    setWrapCubeSizeX(0);
+    setWrapCubeSizeY(0);
+    setWrapCubeSizeZ(0);
+    setLightingEnabled(false);
+    setLightColor({ r: 255, g: 255, b: 255 });
+    setLightIntensity(1);
+    setLightX(0);
+    setLightY(0);
+    setLightZ(0);
+    setLightRadius(1);
+    setAmbientLightIntensity(1);
+    setFocusFocalDistance(10);
+    setFocusFocalDepth(2);
+    setFocusMaxSize(2);
+    setMoveSpeedX(0);
+    setMoveSpeedY(0);
+    setMoveSpeedZ(0);
+    setPlayAnimation(false);
+    setAnimationSpeed(1);
+    setPerfectLoop(false);
+    setAnimateParams(true);
+    setVideoResolution(1920);
+    setVideoFramerate(60);
+    setVideoBitrate(100);
+    setAutoStopMode("Manual");
+    setVideoDuration(10);
+    setImageName("export");
+    setExportSize(4000);
+    setAnimationStates([]);
+  };
+
   const [recordingProgress, setRecordingProgress] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -288,6 +340,10 @@ export default function App() {
       title: "Controls",
     });
     paneRef.current = pane;
+
+    pane
+      .addButton({ title: "Reset All Controls" })
+      .on("click", () => resetControls());
 
     const importFolder = pane.addFolder({ title: "Import" });
     importFolder
