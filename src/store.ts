@@ -3,28 +3,26 @@ import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import { atom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { Quaternion, Vector3 } from "three";
-import type { CameraState } from "./app";
+import type { State } from "./app";
 
-type SerializableCameraState = {
+type SerializableState = {
   position: number[];
   quaternion: number[];
   target: number[];
   zoom: number;
+  params?: any;
 };
 
-const serializeCameraStates = (
-  states: CameraState[]
-): SerializableCameraState[] =>
+const serializeAnimationStates = (states: State[]): SerializableState[] =>
   states.map((s) => ({
     position: s.position.toArray(),
     quaternion: s.quaternion.toArray(),
     target: s.target.toArray(),
     zoom: s.zoom,
+    params: s.params,
   }));
 
-const deserializeCameraStates = (
-  states: SerializableCameraState[]
-): CameraState[] =>
+const deserializeAnimationStates = (states: SerializableState[]): State[] =>
   states.map(
     (s) =>
       ({
@@ -32,31 +30,29 @@ const deserializeCameraStates = (
         quaternion: new Quaternion().fromArray(s.quaternion),
         target: new Vector3().fromArray(s.target),
         zoom: s.zoom,
-      } as CameraState)
+        params: s.params,
+      } as State)
   );
 
-const cameraStatesStorage = createJSONStorage<CameraState[]>(
-  () => localStorage,
-  {
-    replacer: (key, value) => {
-      if (key === "cameraStates") {
-        return serializeCameraStates(value as CameraState[]);
-      }
-      return value;
-    },
-    reviver: (key, value) => {
-      if (key === "cameraStates") {
-        return deserializeCameraStates(value as SerializableCameraState[]);
-      }
-      return value;
-    },
-  }
-);
+const animationStatesStorage = createJSONStorage<State[]>(() => localStorage, {
+  replacer: (key, value) => {
+    if (key === "animationStates") {
+      return serializeAnimationStates(value as State[]);
+    }
+    return value;
+  },
+  reviver: (key, value) => {
+    if (key === "animationStates") {
+      return deserializeAnimationStates(value as SerializableState[]);
+    }
+    return value;
+  },
+});
 
-export const cameraStatesAtom = atomWithStorage<CameraState[]>(
-  "cameraStates",
+export const animationStatesAtom = atomWithStorage<State[]>(
+  "animationStates",
   [],
-  cameraStatesStorage,
+  animationStatesStorage,
   { getOnInit: true }
 );
 
@@ -251,6 +247,14 @@ export const animationSpeedAtom = atomWithStorage(
 export const perfectLoopAtom = atomWithStorage(
   "perfectLoop",
   false,
+  undefined,
+  {
+    getOnInit: true,
+  }
+);
+export const animateParamsAtom = atomWithStorage(
+  "animateParams",
+  true,
   undefined,
   {
     getOnInit: true,

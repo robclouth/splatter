@@ -19,13 +19,16 @@ import {
   ShaderMaterial,
   Vector2,
   Vector3,
+  Color,
 } from "three";
 import type { SceneRef } from "./app";
 import { fragmentShader } from "./fragment-shader";
 import {
   animationSpeedAtom,
+  animateParamsAtom,
   aspectRatioAtom,
-  cameraStatesAtom,
+  animationStatesAtom,
+  backgroundAtom,
   ditherGranularityAtom,
   exportSizeAtom,
   fogAmountAtom,
@@ -69,6 +72,26 @@ import {
   moveSpeedZAtom,
 } from "./store";
 import { vertexShader } from "./vertex-shader";
+
+function interpolateAnimStates(
+  state1: any,
+  state2: any,
+  t: number
+): Record<string, any> {
+  const interpolatedState: Record<string, any> = {};
+  for (const key in state1) {
+    if (typeof state1[key] === "number") {
+      interpolatedState[key] = state1[key] * (1 - t) + state2[key] * t;
+    } else if (typeof state1[key] === "boolean") {
+      interpolatedState[key] = t < 0.5 ? state1[key] : state2[key];
+    } else if (typeof state1[key] === "object") {
+      interpolatedState[key] =
+        t < 0.5 ? { ...state1[key] } : { ...state2[key] };
+    }
+  }
+  return interpolatedState;
+}
+
 const { ACTION } = CameraControlsImpl;
 
 type Uniforms = Record<string, { value: any }>;
@@ -129,15 +152,17 @@ export const Scene = forwardRef<
   const focusFocalDistance = useAtomValue(focusFocalDistanceAtom);
   const focusFocalDepth = useAtomValue(focusFocalDepthAtom);
   const focusMaxSize = useAtomValue(focusMaxSizeAtom);
+  const background = useAtomValue(backgroundAtom);
   // Add move speed atoms
   const moveSpeedX = useAtomValue(moveSpeedXAtom);
   const moveSpeedY = useAtomValue(moveSpeedYAtom);
   const moveSpeedZ = useAtomValue(moveSpeedZAtom);
 
-  const cameraStates = useAtomValue(cameraStatesAtom);
+  const animationStates = useAtomValue(animationStatesAtom);
   const playAnimation = useAtomValue(playAnimationAtom);
   const animationSpeed = useAtomValue(animationSpeedAtom);
   const perfectLoop = useAtomValue(perfectLoopAtom);
+  const animateParams = useAtomValue(animateParamsAtom);
 
   const [viewer, setViewer] = useState<Group>(new Group());
   const [uniforms, setUniforms] = useState<Uniforms | null>(null);
@@ -221,7 +246,7 @@ export const Scene = forwardRef<
   }, [splatSource]);
 
   useEffect(() => {
-    if (!uniforms) return;
+    if (!uniforms || (playAnimation && animateParams)) return;
 
     if (uniforms.noisiness) uniforms.noisiness.value = 1 - noisiness;
     if (uniforms.ditherGranularity)
@@ -307,6 +332,8 @@ export const Scene = forwardRef<
     moveSpeedX,
     moveSpeedY,
     moveSpeedZ,
+    playAnimation,
+    animateParams,
   ]);
 
   useEffect(() => {
@@ -348,7 +375,7 @@ export const Scene = forwardRef<
       gl.setSize(originalSize.x, originalSize.y);
       gl.setPixelRatio(originalPixelRatio);
     },
-    getCameraState: () => {
+    getState: () => {
       if (!controlsRef.current) return null;
       const position = new Vector3();
       controlsRef.current.getPosition(position);
@@ -360,6 +387,42 @@ export const Scene = forwardRef<
         quaternion: camera.quaternion.clone(),
         target,
         zoom,
+        params: {
+          splatScale,
+          noisiness,
+          ditherGranularity,
+          noiseScaleX,
+          noiseScaleY,
+          noiseScaleZ,
+          noiseSpeed,
+          noiseRateX,
+          noiseRateY,
+          noiseRateZ,
+          noiseSharpness,
+          gridScale,
+          gridAmount,
+          fogStart,
+          fogEnd,
+          fogAmount,
+          wrapCubeSizeX,
+          wrapCubeSizeY,
+          wrapCubeSizeZ,
+          lightingEnabled,
+          lightColor,
+          lightIntensity,
+          lightX,
+          lightY,
+          lightZ,
+          lightRadius,
+          ambientLightIntensity,
+          focusFocalDistance,
+          focusFocalDepth,
+          focusMaxSize,
+          moveSpeedX,
+          moveSpeedY,
+          moveSpeedZ,
+          background,
+        },
       };
     },
     startRecording: async (
@@ -458,12 +521,12 @@ export const Scene = forwardRef<
   }));
 
   const { positionCurve, targetCurve, zoomCurve } = useMemo(() => {
-    if (cameraStates.length < 2) {
+    if (animationStates.length < 2) {
       return { positionCurve: null, targetCurve: null, zoomCurve: null };
     }
-    const points = cameraStates.map((s) => s.position);
-    const targets = cameraStates.map((s) => s.target);
-    const zooms = cameraStates.map((s) => s.zoom);
+    const points = animationStates.map((s) => s.position);
+    const targets = animationStates.map((s) => s.target);
+    const zooms = animationStates.map((s) => s.zoom);
 
     // For a closed loop, CatmullRomCurve3 doesn't need the first point repeated at the end.
     const posCurve = new CatmullRomCurve3(points, true, "catmullrom", 0.5);
@@ -475,7 +538,7 @@ export const Scene = forwardRef<
       targetCurve: tgtCurve,
       zoomCurve: zooms,
     };
-  }, [cameraStates]);
+  }, [animationStates]);
 
   const animationState = useRef({
     progress: 0,
@@ -493,7 +556,7 @@ export const Scene = forwardRef<
     // Animation update logic
     if (
       playAnimation &&
-      cameraStates.length >= 2 &&
+      animationStates.length >= 2 &&
       positionCurve &&
       targetCurve &&
       zoomCurve
@@ -501,7 +564,7 @@ export const Scene = forwardRef<
       if (controlsRef.current) controlsRef.current.enabled = false;
 
       animationState.current.progress +=
-        (animationDelta * animationSpeed * 0.1) / cameraStates.length;
+        (animationDelta * animationSpeed * 0.1) / animationStates.length;
       if (animationState.current.progress > 1) {
         animationState.current.progress = 0;
         if (isRecording && autoStopMode === "One Loop") {
@@ -516,7 +579,7 @@ export const Scene = forwardRef<
       camera.lookAt(target);
 
       // For zoom, we find the current segment and progress within it
-      const segmentCount = cameraStates.length;
+      const segmentCount = animationStates.length;
       const scaledT = t * segmentCount;
       const currentIndex = Math.floor(scaledT);
       const segmentProgress = scaledT - currentIndex;
@@ -525,8 +588,31 @@ export const Scene = forwardRef<
       const smoothSegmentProgress =
         segmentProgress * segmentProgress * (3 - 2 * segmentProgress);
 
-      const start = cameraStates[currentIndex];
-      const end = cameraStates[(currentIndex + 1) % segmentCount];
+      const start = animationStates[currentIndex];
+      const end = animationStates[(currentIndex + 1) % segmentCount];
+
+      if (start.params && end.params && animateParams) {
+        const interpolated = interpolateAnimStates(
+          start.params,
+          end.params,
+          smoothSegmentProgress
+        );
+        for (const key in interpolated) {
+          if (key === "background") {
+            const color = interpolated[key];
+            scene.background = new Color(
+              color.r / 255,
+              color.g / 255,
+              color.b / 255
+            );
+          } else {
+            const uniformKey = key;
+            if (uniforms && uniformKey in uniforms) {
+              uniforms[uniformKey].value = interpolated[key];
+            }
+          }
+        }
+      }
 
       (camera as PerspectiveCamera).zoom =
         start.zoom * (1 - smoothSegmentProgress) +
@@ -547,10 +633,11 @@ export const Scene = forwardRef<
     }
 
     if (uniforms?.time) {
-      if (playAnimation && perfectLoop && cameraStates.length >= 2) {
+      if (playAnimation && perfectLoop && animationStates.length >= 2) {
         const progress = animationState.current.progress;
         const pingPongProgress = 1 - Math.abs(progress * 2 - 1);
-        const loopDuration = cameraStates.length / (animationSpeed * 0.1 * 0.5);
+        const loopDuration =
+          animationStates.length / (animationSpeed * 0.1 * 0.5);
         uniforms.time.value = pingPongProgress * loopDuration;
       } else {
         uniforms.time.value += animationDelta;

@@ -3,15 +3,16 @@ import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import { Canvas } from "@react-three/fiber";
 import { useAtom, useSetAtom } from "jotai";
 import { Pane } from "tweakpane";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Quaternion, Vector3 } from "three";
 import { Scene } from "./scene";
 import {
   animationSpeedAtom,
+  animateParamsAtom,
   aspectRatioAtom,
   autoStopModeAtom,
   backgroundAtom,
-  cameraStatesAtom,
+  animationStatesAtom,
   ditherGranularityAtom,
   exportSizeAtom,
   fogAmountAtom,
@@ -84,16 +85,54 @@ export type SplatParams = {
   videoBitrate: number;
 };
 
-export type CameraState = {
+export type AnimationParams = {
+  splatScale: number;
+  noisiness: number;
+  ditherGranularity: number;
+  noiseScaleX: number;
+  noiseScaleY: number;
+  noiseScaleZ: number;
+  noiseSpeed: number;
+  noiseRateX: number;
+  noiseRateY: number;
+  noiseRateZ: number;
+  noiseSharpness: number;
+  gridScale: number;
+  gridAmount: number;
+  fogStart: number;
+  fogEnd: number;
+  fogAmount: number;
+  wrapCubeSizeX: number;
+  wrapCubeSizeY: number;
+  wrapCubeSizeZ: number;
+  lightingEnabled: boolean;
+  lightColor: { r: number; g: number; b: number };
+  lightIntensity: number;
+  lightX: number;
+  lightY: number;
+  lightZ: number;
+  lightRadius: number;
+  ambientLightIntensity: number;
+  focusFocalDistance: number;
+  focusFocalDepth: number;
+  focusMaxSize: number;
+  moveSpeedX: number;
+  moveSpeedY: number;
+  moveSpeedZ: number;
+  background: { r: number; g: number; b: number; a: number };
+};
+
+export type State = {
   position: Vector3;
   quaternion: Quaternion;
   target: Vector3;
   zoom: number;
+  params?: AnimationParams;
 };
 
 export type SceneRef = {
   exportImage: (filename: string) => void;
-  getCameraState: () => CameraState | null;
+  getState: () => State | null;
   startRecording: (
     width: number,
     framerate: number,
@@ -108,7 +147,7 @@ export default function App() {
   const sceneRef = useRef<SceneRef>(null);
   const [dpr, setDpr] = useState(1);
 
-  const setCameraStates = useSetAtom(cameraStatesAtom);
+  const setAnimationStates = useSetAtom(animationStatesAtom);
 
   const [isRecording, setIsRecording] = useAtom(isRecordingAtom);
 
@@ -163,6 +202,7 @@ export default function App() {
   const [playAnimation, setPlayAnimation] = useAtom(playAnimationAtom);
   const [animationSpeed, setAnimationSpeed] = useAtom(animationSpeedAtom);
   const [perfectLoop, setPerfectLoop] = useAtom(perfectLoopAtom);
+  const [animateParams, setAnimateParams] = useAtom(animateParamsAtom);
   const [videoResolution, setVideoResolution] = useAtom(videoResolutionAtom);
   const [videoFramerate, setVideoFramerate] = useAtom(videoFramerateAtom);
   const [videoBitrate, setVideoBitrate] = useAtom(videoBitrateAtom);
@@ -220,6 +260,7 @@ export default function App() {
     playAnimation,
     animationSpeed,
     perfectLoop,
+    animateParams,
     videoResolution,
     videoFramerate,
     videoBitrate,
@@ -229,6 +270,14 @@ export default function App() {
     exportSize,
     recordingProgress,
   });
+
+  const handleStopRecording = useCallback(() => {
+    if (!sceneRef.current) return;
+    setIsRecording(false);
+    sceneRef.current.stopRecording(imageName).then(() => {
+      console.log("Recording finished");
+    });
+  }, [imageName, setIsRecording]);
 
   useEffect(() => {
     paneRef.current?.refresh();
@@ -563,14 +612,14 @@ export default function App() {
       expanded: false,
     });
     animationFolder.addButton({ title: "Add key" }).on("click", () => {
-      const state = sceneRef.current?.getCameraState();
+      const state = sceneRef.current?.getState();
       if (state) {
-        setCameraStates((prev) => [...prev, state]);
+        setAnimationStates((prev) => [...prev, state]);
       }
     });
     animationFolder
       .addButton({ title: "Clear keys" })
-      .on("click", () => setCameraStates([]));
+      .on("click", () => setAnimationStates([]));
     animationFolder
       .addBinding(params, "playAnimation", { label: "Play Animation" })
       .on("change", (e) => setPlayAnimation(e.value));
@@ -585,6 +634,9 @@ export default function App() {
     animationFolder
       .addBinding(params, "perfectLoop", { label: "Perfect Loop" })
       .on("change", (e) => setPerfectLoop(e.value));
+    animationFolder
+      .addBinding(params, "animateParams", { label: "Animate Params" })
+      .on("change", (e) => setAnimateParams(e.value));
 
     const videoFolder = pane.addFolder({ title: "Video", expanded: false });
     videoFolder
@@ -671,6 +723,7 @@ export default function App() {
       pane.dispose();
       paneRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording]);
 
   useEffect(() => {
@@ -689,7 +742,7 @@ export default function App() {
         control.hidden = !lightingEnabled;
       }
     });
-  }, [lightingEnabled]);
+  }, [lightingEnabled, controlRefs]);
 
   useEffect(() => {
     if (controlRefs.recordingProgress) {
@@ -697,15 +750,7 @@ export default function App() {
         isRecording && autoStopMode !== "Manual"
       );
     }
-  }, [isRecording, autoStopMode]);
-
-  const handleStopRecording = () => {
-    if (!sceneRef.current) return;
-    setIsRecording(false);
-    sceneRef.current.stopRecording(imageName).then(() => {
-      console.log("Recording finished");
-    });
-  };
+  }, [isRecording, autoStopMode, controlRefs.recordingProgress]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
